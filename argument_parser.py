@@ -137,6 +137,9 @@ def check_option_dict_validity(option_types):
 def check_command_line_argument_validity(argv):
     """Basic sanity check for argv.
 
+    1. argv is list of string
+    2. len(argv) > 0
+    3. For every element s (except the first one) should hold len(s) > 0
     Parameters
     ----------
     argv : list of strings
@@ -155,6 +158,15 @@ def check_command_line_argument_validity(argv):
 
     """
     ok = True
+    #must be a list
+    if not isinstance(argv, list):
+        return False
+
+    for x in argv:
+        if not isinstance(x, str):
+            return False
+
+
     #must always at least contain the program name
     if len(argv) < 1:
         ok = False
