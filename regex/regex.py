@@ -172,5 +172,50 @@ details:
         (a(b(a(b(a))))) = ababa
         (a|((b*)c)) = a|b*c
 
-
 """
+
+class NFA:
+    """Implements non-deterministic finite automaton
+
+
+    """
+    def __init__(self, states, transition_dict, start_state, accepted_states):
+        self.states = states
+        self.transition_dict = transition_dict
+        self.start_state = start_state
+        self.accepted_states = accepted_states
+
+    def evaluate(self, s):
+        """Determines if the NFA accepts string s
+        """
+        pass
+    def union(self, other):
+        """self = self U other
+
+        """
+        pass
+
+    def concatenate(self, other):
+        """self = Concatenate(self, other)
+
+        """
+        pass
+
+    def star(self):
+        """self = self*
+        """
+        pass
+
+    def plus(self):
+        """self = self+
+        """
+        pass
+
+    def question(self):
+        """self = self?
+        """
+        pass
+
+
+if __name__ == '__main__':
+    pass
