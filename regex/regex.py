@@ -211,6 +211,9 @@ expression is complicated by a few addional details:
             (R|_) = (R?)
             . = (a|(b|c(... where a,b,c are the characters of the alphabet
 
+        Also empty string can be denoted simply by ''
+            (_|a) = (|a)
+
         The different operators are evaluated in the order: */+/?,
         concatenation, union.
 
@@ -229,6 +232,7 @@ To parse these we first form a tree just based on the parentheses.
 To be continued...
 
 """
+
 
 class NFA:
     """Implements non-deterministic finite automaton
@@ -272,6 +276,188 @@ class NFA:
         """
         pass
 
+
+class ParseTreeNode:
+    def __init__(self):
+        self.children = []
+        #meta and normal are used for leaves
+        self.meta = ''
+        self.normal = ''
+
+        #operation is used for internal nodes
+        self.operation = ''
+
+    def add_child(self):
+        pass
+
+
+def parse_regex(regex):
+    """Generates parse tree from regex
+
+    Parameters
+    ----------
+    regex : str
+
+
+    Returns
+    -------
+    root : ParseTreeNode
+        Root of the generated parse tree corresponding to regex
+
+
+    Notes
+    -----
+    The parsing is done by representing the regex as a list and then replacing
+    object (initially all leaf nodes) with parse tree nodes and placing the
+    previous nodes as children of this new node
+
+    This function converts the regex (str) to a list of ParseTreeNodes
+
+    Escaped characters are represend as strings of two characters e.g. \)
+    """
+
+    i = 0
+    regex_object_list = []
+    while i < len(regex):
+        new_node = ParseTreeNode()
+        if regex[i] == '\\':
+            new_node.normal = regex[i+1:i+2]
+            i += 2
+        else:
+            if regex[i] in '*+?|()':
+                new_node.meta = regex[i]
+            else:
+                new_node.normal = regex[i]
+            i += 1
+
+        regex_object_list.append(new_node)
+
+    root = parse_regex_list(list(regex))
+    return root
+
+
+#TODO rename the regex_object_list
+def parse_regex_list(regex_object_list):
+    """Generates parse tree from regex object list
+
+    Parameters
+    ----------
+    regex_object_list : list of ParseTreeNodes
+
+    Returns
+    -------
+    root : ParseTreeNode
+        Root of the generated parse tree corresponding to regex_object_list
+
+    """
+    
+    #regex object lists without any parentheses
+    #regex_lists[i] corresponds to a list which is enclosed in i parentheses
+    regex_lists = [[]]
+
+    for i in range(len(regex_object_list)):
+        if regex_object_list[i].meta == '(':
+            regex_lists.append([])
+            open_parentheses += 1
+
+        elif regex_object_list[i].meta == ')':
+            if len(regex_list) <= 1:
+                raise ValueError("Incorrect parentheses in regex_object_list")
+
+            tmp = parse_wo_parentheses(regex_lists[-1])
+            regex_lists[-2].append(tmp)
+            regex_lists.pop()
+        else:
+            regex_lists[-1].append(regex_object_list[i])
+
+    root = parse_wo_parentheses(regex_lists[0])
+
+def parse_wo_parentheses(regex_object_list):
+    """Parses a regex object list not containing any parentheses
+
+    Parameters
+    ----------
+    regex_object_list : list of characters or ParseTreeNodes
+        Should not contain any parentheses
+
+    Returns
+    -------
+    root : ParseTreeNode
+        Root of the generated parse tree corresponding to regex_object_list
+    
+    """
+
+    result1 = []
+    #*/+/?
+    for i in range(len(regex_object_list)):
+        if regex_object_list[i].meta in ['*', '+', '?']:
+            if len(result1) == 0:
+                raise ValueError("regex_object_list starts with */+/?")
+
+            new_node = ParseTreeNode(children=[result1[-1]], 
+                                     operation=regex_object_list[i].meta)
+
+            result1[-1] = new_node
+        else:
+            result1.append(regex_object_list[i])
+
+    result2 = []
+
+    #concatenation
+    for i in range(len(result1)):
+        result2.append(result1[i])
+        if len(result2 >= 2):
+            if result2[-2].meta == '' and result2[-1].meta == '':
+                new_node = ParseTreeNode(children=result2[-2],
+                                         operation='concatenation')
+                result2[-2:] = []
+                reuslt2.append(new_node)
+
+    #union
+
+    i = 0
+    result3 = []
+    while i < len(result2):
+        if result2[i].meta == '|':
+            #in some cases we need to create empty nodes here
+            
+            #['|', ...]
+            if i == 0:
+                left_child = ParseTreeNode(normal='')
+            #[..., '^', '|']
+            elif result3[-1].meta != '':
+                left_child = ParseTreeNode(normal='')
+            else:
+                left_child = ParseTreeNode(normal='')
+
+
+            #[..., '|']
+            if i+1 == len(result2):
+                right_child = ParseTreeNode(normal='')
+            #[..., '|', '|']
+            elif result2[i+1].meta != '':
+                right_child = ParseTreeNode(normal='')
+            else:
+                right_child = result2[i+1]
+                i += 1
+
+            result3.append(ParseTreeNode(children=[left_child, right_child],
+                                         operation='|')) 
+
+        else:
+            result3.append(result2[i])
+
+    if len(result3) != 1:
+        raise Exception("regex_object_list was not processed fully")
+
+    return result3[0]
+
+class ParseTree:
+    def __init__(self, regex):
+        pass
+
+    def parse(self, regex):
+        pass
 
 if __name__ == '__main__':
     pass
