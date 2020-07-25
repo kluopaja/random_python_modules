@@ -447,6 +447,9 @@ def parse_wo_parentheses(regex_object_list):
         else:
             result3.append(result2[i])
 
+    #TODO:
+    #Add processing for .
+
     if len(result3) != 1:
         raise Exception("regex_object_list was not processed fully")
 
