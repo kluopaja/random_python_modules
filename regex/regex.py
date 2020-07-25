@@ -123,6 +123,26 @@ It can be shown that for every finite language A, a finite automaton
 B, such that L(B) = A, can be constructed using only the previous operations
 1-3.
 
+We might then imagine using the knowledge to construct finite automata to solve
+our problem of matching a string in a computer program. Perhaps our code would
+looks something like following:
+    def check_string(s):
+        #Initialize the base cases
+        S1 = FiniteAutomaton('A')
+        S2 = FiniteAutomaton('B')
+
+        #Construct automaton
+        A1 = union(S1, S2)
+        A2 = concatenate(S1, S2)
+        A3 = concatenate(A1, A2)
+        A4 = star(A3)
+
+        return A4.match(s)
+
+
+We would clearly benefit from having concise notation that is human readable
+and standardized. This leads us to regular expressions.
+
 Regular expression
 ------------------
 
@@ -150,27 +170,63 @@ Definition:
         3. Kleene star
             Let R be a regular expression, then also (R*) is a regular
             expression and L((R*)) = L(R)*
-        
 
-We note that regular expressions are formed in a way that directly gives us
-instructions to generate a finite automaton which recognizes the same language.
+What if there were two sequences of operations leading to a regular
+expression R but two different languages? This would not be desirable as we
+want to define a language with a regular expression. We note that 
+this is clearly not the case for every regular expression consisting of only
+one character. By noting that every regular expression is either one letter
+or enclosed in parentheses we can also see that if we have a more complex
+regular expression R, then there is always only one operation which could
+have formed R. Moreover, for every operation there is only a one way to
+select regular expressions R1 (and R2) to form R. Thus only one way to 
+define the language L(R).
 
-Unfortunately parsing the regular expression is complicated by a few
-details:
-    We include the following shorthand notations:
-        (R(R*)) = (R+)
-        (R|_) = (R?)
+#pllk mitä mieltä tuosta^?
 
-    The different operators are evaluated in the order: */+/?,
-    concatenation, union.
+We note that if we have the instructions to construct some finite automaton
+based on the rules of the previous section, we can simply apply the same 
+sequence of operations to constuct a regular expessions describing the same 
+language.
 
-    Operators are evaluated from left to right.
+The next challenge is to do the opposite i.e. to find out the way to decompose
+a regular expression to the operations used to form it. This is done by forming
+a parse tree of the expression. Every node of the parse tree corresponds to
+some regular expression. The leaves are always one of our three simple
+languages. 
 
-    All excessive parentheses can simply be left out.
+Lets then consider an internal node r. Node r corresponds to a regular
+expression formed from its child(ren) by applying some of our 3 operations.
+This operation is also stored at the node r.
 
-    For example:
-        (a(b(a(b(a))))) = ababa
-        (a|((b*)c)) = a|b*c
+The root of the parse tree is the whole regular expression.
+
+Parsing regular expressions in the most basic form is easy and can be basically
+done by constructing the tree formed by the parentheses.
+
+Unfortunately for us but fortunately for the user parsing the regular
+expression is complicated by a few addional details:
+        We include the following shorthand notations:
+            (R(R*)) = (R+)
+            (R|_) = (R?)
+            . = (a|(b|c(... where a,b,c are the characters of the alphabet
+
+        The different operators are evaluated in the order: */+/?,
+        concatenation, union.
+
+        Operators are evaluated from left to right.
+
+        All excessive parentheses can simply be left out.
+
+        For example:
+            (a(b(a(b(a))))) = ababa
+            (a|((b*)c)) = a|b*c
+
+NOTE: Should I comment something that regular expressions are still well
+defined? How to prove this? pllk!!!
+
+To parse these we first form a tree just based on the parentheses.
+To be continued...
 
 """
 
