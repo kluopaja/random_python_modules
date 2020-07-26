@@ -298,6 +298,7 @@ class NFA:
         self.compiled = False
         self.nodes = None
 
+
     def evaluate(self, s):
         """Determine if the NFA accepts string s
         """
@@ -435,7 +436,8 @@ class NFA:
     def question(self):
         """Return a new set self? = (_|self)
         """
-        return self.
+        #return self.
+        pass
 
 
 class ParseTreeNode:
@@ -451,7 +453,7 @@ class ParseTreeNode:
         Every character that is not directly representing a character of the
         mached string.
 
-        Only '.' and '_' should be present in the final tree (leafs only)
+        Only '.' should be present in the final tree (leafs only)
 
     self.normal : str or None
         normal character(s)
@@ -528,7 +530,7 @@ def convert_regex_to_parsing_leafs(regex):
             new_node.normal = regex[i+1:i+2]
             i += 2
         else:
-            if regex[i] in '*+?|()._':
+            if regex[i] in '*+?|().':
                 new_node.meta = regex[i]
             else:
                 new_node.normal = regex[i]
@@ -649,24 +651,24 @@ def process_union(parse_nodes):
             
             #['|', ...]
             if i == 0:
-                left_child = ParseTreeNode(meta='_')
-            elif result[-1].normal != None or result[-1].meta in ['_', '.']:
+                left_child = ParseTreeNode(normal='')
+            elif result[-1].normal != None or result[-1].meta in ['.']:
                 left_child = parse_nodes[i-1]
             #[..., '^', '|']
             else:
-                left_child = ParseTreeNode(meta='_')
+                left_child = ParseTreeNode(normal='')
 
 
             #[..., '|']
             if i+1 == len(parse_nodes):
-                right_child = ParseTreeNode(meta='_')
+                right_child = ParseTreeNode(normal='')
             #[..., '|', '|']
             elif parse_nodes[i+1].normal != None \
-                or parse_nodes[i+1].meta in ['_', '.']:
+                or parse_nodes[i+1].meta in ['.']:
                 right_child = parse_nodes[i+1]
                 i += 1
             else:
-                right_child = ParseTreeNode(meta='_')
+                right_child = ParseTreeNode(normal='')
 
             result.append(ParseTreeNode(children=[left_child, right_child],
                                          operation='|')) 
