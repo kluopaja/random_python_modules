@@ -232,47 +232,181 @@ To parse these we first form a tree just based on the parentheses.
 To be continued...
 
 """
+class NFANode:
+    """Class for NFA nodes.
+
+    Id of a node is always its index in NFA.nodes
+
+    Attributes
+    ----------
+    
+    self.transitions : dict (str, set)
+        set of nodes reachable from self with the key
+        
+    """
+    def __init__(self, transitions={}):
+        self.transitions = copy.deepcopy(transitions)
+
+    def add_transition(self, target, symbol):
+        if symbol in self.transitions:
+            self.transitions[symbol].add(target)
+        else:
+            self.transitions[symbol] = {target}
+
+    def transitions_with_symbol(self, symbol):
+        if symbol in self.transitions:
+            return list(self.transitions[symbol])
+        else:
+            return []
+
+    def transition_list(self):
+        """Returns list of transitions from self
+
+        Returns
+        -------
+            result : list of tuples
+                result[i][0]: end
+                result[i][1]: symbol
+        """
+
+        result = []
+        for symbol, target in self.transitions.items():
+                result.append((target, symbol))
+
+        return result
+
+
+    def copy(self):
+        return NFANode(self.transitions)
+
+    def clear_transitions(self):
+        self.transitions = {}
 
 
 class NFA:
     """Implements non-deterministic finite automaton
 
+    Attributes
+    ----------
 
     """
-    def __init__(self, states, transition_dict, start_state, accepted_states):
-        self.states = states
-        self.transition_dict = transition_dict
-        self.start_state = start_state
-        self.accepted_states = accepted_states
+    def __init__(self, n_nodes, start_node, accepted_nodes, transitions):
+        self.n_nodes = n_nodes
+        self.nodes = [NFANode() for i in range(self.n_nodes)]
+        self.start_node = start_node
+        self.accepted_nodes = accepted_nodes.copy()
+        self.add_transitions(transitions)
 
     def evaluate(self, s):
-        """Determines if the NFA accepts string s
+        """Determine if the NFA accepts string s
         """
         pass
-    def union(self, other):
-        """self = self U other
+
+
+    def copy(self):
+        transition_list = self.transition_list()
+        return NFA(self.n_nodes, self.start_node, self.accepted_nodes,
+                  transition_list)
+
+    def add_transitions(self, transitions):
+        """Adds transition to self
+
+        Parameters
+        ----------
+        transitions : list of tuples
+            transitions[i][0]: begin
+            transitions[i][1]: end
+            transitions[i][2]: symbol
 
         """
+
+        for x in transitions:
+            self.nodes[x[0]].add_transition(x[1], x[2])
+
+    def clear_transitions(self):
+        for x in nodes:
+            x.clear_transitions()
+
+
+    def transition_list(self):
+        """Returns list of transitions in self
+
+        Returns
+        -------
+            result : list of tuples
+                result[i][0]: begin
+                result[i][1]: end
+                result[i][2]: symbol
+        """
+        result = []
+        for node in self.nodes:
+            transitions_from_node = node.transition_list()
+            for x in transitions_from_node:
+                result.append((node, x[0], x[1]))
+
+        return result
+    
+    def apply_offset(self, offset):
+        """Shifts _all_ indexes by offset.
+
+        Parameters
+        ----------
+            offset : non-negative int
+
+
+        Notes
+        -----
+        Used to make the nodes in two graphs non-overlapping.
+
+        """
+
+        if offset < 0:
+            raise ValueError("offset cannot be negative")
+
+
+        self.n_nodes += offset
+        self.start_node += offset
+    
+        transition_list = self.transition_list()
+        
+        for i in range(len(transition_list)):
+            transition_list[i][0] += offset
+            transition_list[i][1] += offset
+        
+        self.clear_transitions()
+        self.add_transitions(transition_list)
+
+    def union(self, other):
+        """Return union as a new NFA
+        """
+        self_copy = self.copy()
+        other_copy = other.copy()
+
+        other_copy.apply_offset(self_copy.n_nodes);
+
+        
+        #create new start_state 
+        #add 
         pass
 
     def concatenate(self, other):
-        """self = Concatenate(self, other)
+        """Return concatenation as a new NFA
 
         """
         pass
 
     def star(self):
-        """self = self*
+        """Return a new set self*
         """
         pass
 
     def plus(self):
-        """self = self+
+        """Return a new set self+
         """
         pass
 
     def question(self):
-        """self = self?
+        """Return a new set self?
         """
         pass
 
@@ -437,10 +571,10 @@ def parse_wo_parentheses(regex_object_list):
     regex_object_list = process_union(regex_object_list)
 
 
-    if len(result3) != 1:
+    if len(regex_object_list) != 1:
         raise Exception("regex_object_list was not processed fully")
 
-    return result3[0]
+    return regex_object_list[0]
 
 def process_unary(parse_nodes):
     """Processes nodes with a metacharacter */+/?
@@ -517,13 +651,6 @@ def process_union(parse_nodes):
 
     return result
 
-
-class ParseTree:
-    def __init__(self, regex):
-        pass
-
-    def parse(self, regex):
-        pass
 
 if __name__ == '__main__':
     pass
