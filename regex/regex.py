@@ -416,6 +416,7 @@ def parse_leafs_to_tree(parse_leafs):
 
     root = parse_wo_parentheses(regex_lists[0])
 
+
 def parse_wo_parentheses(regex_object_list):
     """Parses a regex object list not containing any parentheses
 
@@ -431,73 +432,91 @@ def parse_wo_parentheses(regex_object_list):
     
     """
 
-    result1 = []
-    #*/+/?
-    for i in range(len(regex_object_list)):
-        if regex_object_list[i].meta in ['*', '+', '?']:
-            if len(result1) == 0:
-                raise ValueError("regex_object_list starts with */+/?")
-
-            #TODO More error checking
-            new_node = ParseTreeNode(children=[result1[-1]], 
-                                     operation=regex_object_list[i].meta)
-
-            result1[-1] = new_node
-        else:
-            result1.append(regex_object_list[i])
-
-    result2 = []
-
-    #concatenation
-    for i in range(len(result1)):
-        result2.append(result1[i])
-        if len(result2 >= 2):
-            if result2[-2].meta != '|' and result2[-1].meta != '|':
-                new_node = ParseTreeNode(children=result2[-2],
-                                         operation='concatenation')
-                result2[-2:] = []
-                reuslt2.append(new_node)
-
-    #union
-    i = 0
-    result3 = []
-    while i < len(result2):
-        if result2[i].meta == '|':
-            #in some cases we need to create empty nodes here
-            
-            #['|', ...]
-            if i == 0:
-                left_child = ParseTreeNode(meta='_')
-            elif result3[-1].normal != None or result3[-1].meta in ['_', '.']:
-                left_child = result2[i-1]
-            #[..., '^', '|']
-            else:
-                left_child = ParseTreeNode(meta='_')
-
-
-            #[..., '|']
-            if i+1 == len(result2):
-                right_child = ParseTreeNode(meta='_')
-            #[..., '|', '|']
-            elif result2[i+1].normal != None or result2[i+1].meta in ['_', '.']:
-                right_child = result2[i+1]
-                i += 1
-            else:
-                right_child = ParseTreeNode(meta='_')
-
-            result3.append(ParseTreeNode(children=[left_child, right_child],
-                                         operation='|')) 
-
-        else:
-            result3.append(result2[i])
-
-        i += 1
+    regex_object_list = process_unary(regex_object_list)
+    regex_object_list = process_concatenation(regex_object_list)
+    regex_object_list = process_union(regex_object_list)
 
 
     if len(result3) != 1:
         raise Exception("regex_object_list was not processed fully")
 
     return result3[0]
+
+def process_unary(parse_nodes):
+    """Processes nodes with a metacharacter */+/?
+
+"""
+    result = []
+
+    for i in range(len(parse_nodes)):
+        if parse_nodes[i].meta in ['*', '+', '?']:
+            if len(result) == 0:
+                raise ValueError("regex_object_list starts with */+/?")
+
+            #TODO More error checking
+            new_node = ParseTreeNode(children=[result[-1]], 
+                                     operation=parse_nodes[i].meta)
+
+            result[-1] = new_node
+        else:
+            result.append(parse_nodes[i])
+
+    return result
+
+def process_concatenation(parse_nodes):
+
+    result = []
+
+    #concatenation
+    for i in range(len(parse_nodes)):
+        result.append(parse_nodes[i])
+        if len(result >= 2):
+            if result[-2].meta != '|' and result[-1].meta != '|':
+                new_node = ParseTreeNode(children=result[-2],
+                                         operation='concatenation')
+                result[-2:] = []
+                reuslt.append(new_node)
+
+    return result
+
+def process_union(parse_nodes):
+    i = 0
+    result = []
+    while i < len(parse_nodes):
+        if pase_nodes[i].meta == '|':
+            #in some cases we need to create empty nodes here
+            
+            #['|', ...]
+            if i == 0:
+                left_child = ParseTreeNode(meta='_')
+            elif result[-1].normal != None or result[-1].meta in ['_', '.']:
+                left_child = parse_nodes[i-1]
+            #[..., '^', '|']
+            else:
+                left_child = ParseTreeNode(meta='_')
+
+
+            #[..., '|']
+            if i+1 == len(parse_nodes):
+                right_child = ParseTreeNode(meta='_')
+            #[..., '|', '|']
+            elif parse_nodes[i+1].normal != None \
+                or parse_nodes[i+1].meta in ['_', '.']:
+                right_child = parse_nodes[i+1]
+                i += 1
+            else:
+                right_child = ParseTreeNode(meta='_')
+
+            result.append(ParseTreeNode(children=[left_child, right_child],
+                                         operation='|')) 
+
+        else:
+            result.append(parse_nodes[i])
+
+        i += 1
+
+    return result
+
 
 class ParseTree:
     def __init__(self, regex):
