@@ -1,1 +1,3 @@
-# command_line_argument_reader
+# Random python modules
+
+Collection of small utilities to learn programming.
