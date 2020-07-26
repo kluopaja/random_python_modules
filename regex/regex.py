@@ -297,14 +297,91 @@ class NFA:
 
         self.compiled = False
         self.nodes = None
+    @classmethod
+    def union_of_characters(cls, characters):
+        """Construct a small NFA for a set of characters
 
+        Parameters
+        ----------
+        characters : list(str)
+
+        """
+        transitions = [(-1, 1, x) for x in characters]
+        for x in characters:
+            transitions.append((0, 1, x))
+        return NFA(2, 0, 1, transitions)
 
     def evaluate(self, s):
         """Determine if the NFA accepts string s
         """
         if not compiled:
             self.compile()
-        pass
+
+        node_list = [self.start_node]
+
+        node_list = reacable_with_symbol(node_list, '')
+
+        for i in range(len(s)):
+            node_list = reachable_with_symbol(node_list, s[i])
+            node_list = reachable_with_empty(node_list)
+
+        for x in node_list:
+            if x in self.accepted_nodes:
+                return True
+
+        return False
+            
+
+
+    def reachable_with_symbol(self, node_list, symbol):
+        """Adds states to node_list which are reacable with symbol
+
+        Parameters
+        ----------
+        node_list : list (int)
+
+        symbol : str
+
+        Returns
+        -------
+        new_node_list
+
+        """
+
+        new_node_list = []
+        id_active = [False for i in range(self.n_nodes)]
+
+
+        for i in range(len(node_list)):
+            node_id = node_list[i]
+            neighbours = self.nodes[node_id].transitions_with_symbol(symbol)
+            for x in neighbours:
+                if not id_active[x]:
+                    new_node_list.append(x)
+                    id_active[x]
+
+        return new_node_list
+
+    def reachable_with_empty(self, node_list):
+        """Adds states to node_list which are reacable with symbol
+
+        Parameters
+        ----------
+        node_list : list (int)
+        
+        symbol : str
+
+        Returns
+        -------
+        new_node_list
+        """
+
+        new_node_list = reachable_with_symbol(node_list, '')
+        #it is not necessary to use the empty string edges
+        new_node_list.extend(node_list)
+        #remove duplicates
+        new_node_list = list(set(new_node_list))
+        return new_node_list
 
 
     def copy(self):
@@ -312,6 +389,9 @@ class NFA:
                   self.transitions)
 
     def compile(self):
+        """Construct a graph of NFANodes with transitions from self.transitions
+
+        """
         self.nodes = [NFANode() for i in range(self.n_nodes)]
         self.process_transitions()
         self.compiled = True
@@ -436,8 +516,7 @@ class NFA:
     def question(self):
         """Return a new set self? = (_|self)
         """
-        #return self.
-        pass
+        return self.union(NFA.union_of_characters(['']))
 
 
 class ParseTreeNode:
