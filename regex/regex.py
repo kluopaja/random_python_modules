@@ -304,36 +304,52 @@ def parse_regex(regex):
     root : ParseTreeNode
         Root of the generated parse tree corresponding to regex
 
+    """
+
+    tmp = convert_regex_to_parsing_leafs(regex)
+    root = parse_regex_list(tmp)
+    return root
+
+def convert_regex_to_parsing_leafs(regex):
+    """Processes a regex string for further use
+
+    Parameters
+    ----------
+    regex : str
+
+
+    Returns
+    -------
+    leafs : list (ParseTreeNode)
+        ParseTree leafs to be converted to a parse tree
+
 
     Notes
     -----
-    The parsing is done by representing the regex as a list and then replacing
-    object (initially all leaf nodes) with parse tree nodes and placing the
-    previous nodes as children of this new node
 
-    This function converts the regex (str) to a list of ParseTreeNodes
-
-    Escaped characters are represend as strings of two characters e.g. \)
+    Every character (including escaped characters) is converted to a 
+    ParseTreeNode object.
     """
 
     i = 0
-    regex_object_list = []
+    leafs = []
     while i < len(regex):
         new_node = ParseTreeNode()
         if regex[i] == '\\':
             new_node.normal = regex[i+1:i+2]
             i += 2
         else:
-            if regex[i] in '*+?|()':
+            if regex[i] in '*+?|().':
                 new_node.meta = regex[i]
             else:
                 new_node.normal = regex[i]
+            
             i += 1
 
-        regex_object_list.append(new_node)
+        leafs.append(new_node)
 
-    root = parse_regex_list(list(regex))
-    return root
+    return leafs
+
 
 
 #TODO rename the regex_object_list
@@ -414,7 +430,6 @@ def parse_wo_parentheses(regex_object_list):
                 reuslt2.append(new_node)
 
     #union
-
     i = 0
     result3 = []
     while i < len(result2):
@@ -425,17 +440,17 @@ def parse_wo_parentheses(regex_object_list):
             if i == 0:
                 left_child = ParseTreeNode(normal='')
             #[..., '^', '|']
-            elif result3[-1].meta != '':
+            elif result3[-1].meta not in ['', '.']:
                 left_child = ParseTreeNode(normal='')
             else:
-                left_child = ParseTreeNode(normal='')
+                left_child = result2[i-1]
 
 
             #[..., '|']
             if i+1 == len(result2):
                 right_child = ParseTreeNode(normal='')
             #[..., '|', '|']
-            elif result2[i+1].meta != '':
+            elif result2[i+1].meta not in ['', '.']:
                 right_child = ParseTreeNode(normal='')
             else:
                 right_child = result2[i+1]
@@ -447,8 +462,6 @@ def parse_wo_parentheses(regex_object_list):
         else:
             result3.append(result2[i])
 
-    #TODO:
-    #Add processing for .
 
     if len(result3) != 1:
         raise Exception("regex_object_list was not processed fully")
