@@ -259,6 +259,7 @@ class NFANode:
         else:
             return []
 
+#TODO can be removed
     def transition_list(self):
         """Returns list of transitions from self
 
@@ -279,8 +280,6 @@ class NFANode:
     def copy(self):
         return NFANode(self.transitions)
 
-    def clear_transitions(self):
-        self.transitions = {}
 
 
 class NFA:
@@ -292,60 +291,38 @@ class NFA:
     """
     def __init__(self, n_nodes, start_node, accepted_nodes, transitions):
         self.n_nodes = n_nodes
-        self.nodes = [NFANode() for i in range(self.n_nodes)]
         self.start_node = start_node
         self.accepted_nodes = accepted_nodes.copy()
-        self.add_transitions(transitions)
+        self.transitions = transitions.copy()
+
+        self.compiled = False
+        self.nodes = None
 
     def evaluate(self, s):
         """Determine if the NFA accepts string s
         """
+        if not compiled:
+            self.compile()
         pass
 
 
     def copy(self):
-        transition_list = self.transition_list()
         return NFA(self.n_nodes, self.start_node, self.accepted_nodes,
-                  transition_list)
+                  self.transitions)
 
-    def add_transitions(self, transitions):
-        """Adds transition to self
+    def compile(self):
+        self.nodes = [NFANode() for i in range(self.n_nodes)]
+        self.process_transitions()
+        self.compiled = True
 
-        Parameters
-        ----------
-        transitions : list of tuples
-            transitions[i][0]: begin
-            transitions[i][1]: end
-            transitions[i][2]: symbol
+
+    def process_transitions(self):
+        """Adds transitions to node objects
 
         """
-
-        for x in transitions:
+        for x in self.transitions:
             self.nodes[x[0]].add_transition(x[1], x[2])
 
-    def clear_transitions(self):
-        for x in nodes:
-            x.clear_transitions()
-
-
-    def transition_list(self):
-        """Returns list of transitions in self
-
-        Returns
-        -------
-            result : list of tuples
-                result[i][0]: begin
-                result[i][1]: end
-                result[i][2]: symbol
-        """
-        result = []
-        for node in self.nodes:
-            transitions_from_node = node.transition_list()
-            for x in transitions_from_node:
-                result.append((node, x[0], x[1]))
-
-        return result
-    
     def apply_offset(self, offset):
         """Shifts _all_ indexes by offset.
 
@@ -360,6 +337,8 @@ class NFA:
 
         """
 
+        self.compiled = False
+
         if offset < 0:
             raise ValueError("offset cannot be negative")
 
@@ -367,48 +346,96 @@ class NFA:
         self.n_nodes += offset
         self.start_node += offset
     
-        transition_list = self.transition_list()
         
-        for i in range(len(transition_list)):
-            transition_list[i][0] += offset
-            transition_list[i][1] += offset
+        for i in range(len(self.transitions)):
+            self.transitios[i][0] += offset
+            self.transitios[i][1] += offset
         
-        self.clear_transitions()
-        self.add_transitions(transition_list)
-
     def union(self, other):
         """Return union as a new NFA
         """
         self_copy = self.copy()
         other_copy = other.copy()
+        #make sure that the node ids are not overlapping
+        other_copy.apply_offset(self_copy.n_nodes)
 
-        other_copy.apply_offset(self_copy.n_nodes);
+        self_copy.n_nodes += other_copy.n_nodes
+        self_copy.transitions.extend(other_copy.transitions)
 
-        
-        #create new start_state 
-        #add 
-        pass
+        self_old_start = self_copy.start_node
+        other_old_start = other_copy.start_node
+
+        #set new start node
+        self_copy.n_nodes += 1
+        self_copy.start_node = self_copy.n_nodes-1
+
+        #add edges from the new start node
+        new_edges = []
+        new_edges.append((self_copy.start_node, self_old_start, ''))
+        new_edges.append((self_copy.start_node, other_old_start, ''))
+        self_copy.transitions.extend(new_edges)
+
+        #update accepted nodes
+        self_copy.accepted_nodes.extend(other_copy.accepted_nodes)
+
+        return self_copy
 
     def concatenate(self, other):
         """Return concatenation as a new NFA
 
         """
-        pass
+        self_copy = self.copy()
+        other_copy = other.copy()
+
+        #make sure the node ids are not overlapping
+        other_copy.apply_offset(self_copy.n_nodes)
+
+        self_copy.n_nodes += other_copy.n_nodes
+        self_copy.add_transitions(other_copy.transitions)
+
+        new_edges = []
+        for x in self_copy.accepted_nodes:
+            new_edges.append((x, other_copy.start_node, ''))
+
+
+        self_copy.transitions.extend(new_edges)
+        self_copy.accepted_nodes = other_copy.accepted_nodes.copy()
+
+        return self_copy
 
     def star(self):
         """Return a new set self*
+        
         """
-        pass
+        self_copy = self.copy()
+
+        #add new start node and add it to accepted nodes
+        self_copy.n_nodes += 1
+        self_new_start = self_copy.n_nodes-1
+        
+        self_copy.accepted_nodes.append(self_new_start)
+
+        #add edges from the accepted states to the old start node
+        new_edges = []
+        for x in self_copy.accepted_nodes:
+            new_edges.append((x, self_copy.start_node, ''))
+
+        self_copy.transitions.extend(new_edges)
+
+        self_copy.start_node = self_new_start
+
+        return self_copy
 
     def plus(self):
-        """Return a new set self+
+        """Return a new set self+ = selfself*
         """
-        pass
+
+        return self.concatenation(self.star())
 
     def question(self):
-        """Return a new set self?
+        """Return a new set self? = (_|self)
         """
-        pass
+        return self.
 
 
 class ParseTreeNode:
