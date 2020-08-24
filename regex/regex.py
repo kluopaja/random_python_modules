@@ -182,7 +182,6 @@ have formed R. Moreover, for every operation there is only a one way to
 select regular expressions R1 (and R2) to form R. Thus only one way to
 define the language L(R).
 
-#pllk mitä mieltä tuosta^?
 
 We note that if we have the instructions to construct some finite automaton
 based on the rules of the previous section, we can simply apply the same
@@ -226,7 +225,7 @@ expression is complicated by a few addional details:
             (a|((b*)c)) = a|b*c
 
 NOTE: Should I comment something that regular expressions are still well
-defined? How to prove this? pllk!!!
+defined? How to prove this?
 
 To parse these we first form a tree just based on the parentheses.
 To be continued...
@@ -279,8 +278,6 @@ class NFANode:
 
     def copy(self):
         return NFANode(self.transitions)
-
-
 
 class NFA:
     """Implements non-deterministic finite automaton
@@ -530,7 +527,6 @@ class NFA:
         """
         return self.union(NFA.union_of_characters(['']))
 
-
 class ParseTreeNode:
     """Used to represent the regex as a tree
 
@@ -671,7 +667,6 @@ def parse_nodes_to_tree(parse_nodes):
 
     root = parse_wo_parentheses(regex_lists[0])
 
-
 def parse_wo_parentheses(parse_nodes):
     """Parses a ParseTreeNode list not containing any parentheses
 
@@ -744,7 +739,7 @@ def process_union(parse_nodes):
             #['a', '|']
             elif result[-1].normal != None or result[-1].meta in ['.'] \
                  or result[-1].operation != None:
-                left_child = parse_nodes[i-1]
+                left_child = result.pop()
             else:
                 raise Exception("Unhandled metacharacter before |")
 
