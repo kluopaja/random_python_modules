@@ -591,6 +591,7 @@ class ParseTreeNode:
         The state of the current node is expressed by three consecutive
         characters. Let the characters be 'ABC'. Now self.operation == 'A',
         self.meta = 'B' and self.normal = 'C'. None is denoted by 'N'.
+        Empty self.normal is denoted by '_'
         """
         rows = self.str_helper(level_depth=3)
         return '\n'.join(rows)
@@ -608,7 +609,12 @@ class ParseTreeNode:
 
         prefix = 'N' if self.operation is None else self.operation[0]
         prefix += 'N' if self.meta is None else self.meta[0]
-        prefix += 'N' if self.normal is None else self.normal[0]
+        if self.normal is None:
+            prefix += 'N'
+        elif self.normal is '':
+            prefix += '_'
+        else:
+            prefix += self.normal[0]
 
         if len(self.children) == 0:
             return [prefix]

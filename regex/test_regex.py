@@ -56,6 +56,10 @@ class TestParseTreeNode(unittest.TestCase):
         a = str(a)
         self.assertEqual(a, "NNa")
 
+        a = regex.ParseTreeNode(normal='')
+        a = str(a)
+        self.assertEqual(a, "NN_")
+
         a = regex.ParseTreeNode(meta='|')
         a = str(a)
         self.assertEqual(a, "N|N")
