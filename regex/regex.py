@@ -569,6 +569,71 @@ class ParseTreeNode:
         #operation is used for internal nodes in the final tree
         self.operation = operation
 
+    def __eq__(self, other):
+        if not isinstance(other, ParseTreeNode):
+            return NotImplemented
+
+        if self.meta != other.meta or self.normal != other.normal \
+           or self.operation != other.operation:
+            return False
+
+        if len(self.children) != len(other.children):
+            return False
+
+        for i in range(len(self.children)):
+            if self.children[i] != other.children[i]:
+                return False
+
+        return True
+    def __str__(self):
+        """Prints tree in a user friendly format.
+
+        The state of the current node is expressed by three consecutive
+        characters. Let the characters be 'ABC'. Now self.operation == 'A',
+        self.meta = 'B' and self.normal = 'C'. None is denoted by 'N'.
+        """
+        rows = self.str_helper(level_depth=3)
+        return '\n'.join(rows)
+
+    def str_helper(self, level_depth=0):
+        """Returns list of rows of the text presentation of the tree
+
+        Parameters
+        ----------
+            level_depth: integer (>=0)
+                extra space between subsequent tree levels
+        """
+        if level_depth < 0:
+            raise ValueError("level_depth must be nonnegative")
+
+        prefix = 'N' if self.operation is None else self.operation[0]
+        prefix += 'N' if self.meta is None else self.meta[0]
+        prefix += 'N' if self.normal is None else self.normal[0]
+
+        if len(self.children) == 0:
+            return [prefix]
+
+        out = []
+        child_strs = [x.str_helper(level_depth) for x in self.children]
+        for i in range(len(child_strs)):
+            for j in range(len(child_strs[i])):
+                if i == 0 and j == 0:
+                    prefix += "-"*level_depth
+                elif j == 0:
+                    prefix = "+--"
+                    prefix += "-"*level_depth
+                elif i != len(child_strs)-1:
+                    prefix = "|  "
+                    prefix += " "*level_depth
+                else:
+                    prefix = "   "
+                    prefix += " "*level_depth
+
+                out.append(prefix+child_strs[i][j])
+                if j == len(child_strs[i])-1 and i != len(child_strs)-1:
+                    out.append('|')
+
+        return out
 
 def parse_regex(regex):
     """Generates parse tree from regex
