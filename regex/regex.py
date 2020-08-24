@@ -539,7 +539,7 @@ class ParseTreeNode:
     self.children : list (ParseTreeNode)
 
     self.meta : str or None
-        regex metacharacter (e.g. '*+?()|._')
+        regex metacharacter (e.g. '*+?()|.')
 
         Every character that is not directly representing a character of the
         mached string.
@@ -567,11 +567,11 @@ class ParseTreeNode:
         self.meta = meta
         self.normal = normal
 
+        #TODO check that the constructed node is valid!
+        #TODO modify the @final tree@ 
+
         #operation is used for internal nodes in the final tree
         self.operation = operation
-
-    def add_child(self):
-        pass
 
 
 def parse_regex(regex):
@@ -589,11 +589,11 @@ def parse_regex(regex):
 
     """
 
-    tmp = convert_regex_to_parsing_leafs(regex)
-    root = parse_leafs_to_tree(tmp)
+    tmp = regex_to_parse_tree_nodes(regex)
+    root = parse_nodes_to_tree(tmp)
     return root
 
-def convert_regex_to_parsing_leafs(regex):
+def regex_to_parse_tree_nodes(regex):
     """Processes a regex string for further use
 
     Parameters
@@ -625,17 +625,14 @@ def convert_regex_to_parsing_leafs(regex):
                 new_node.meta = regex[i]
             else:
                 new_node.normal = regex[i]
-            
             i += 1
 
         leafs.append(new_node)
 
     return leafs
 
-
-
-def parse_leafs_to_tree(parse_leafs):
-    """Generates parse tree from parse_leafs
+def parse_nodes_to_tree(parse_nodes):
+    """Generates parse tree from parse_nodes
 
     Parameters
     ----------
@@ -647,16 +644,20 @@ def parse_leafs_to_tree(parse_leafs):
     root : ParseTreeNode
         Root of the generated parse tree generated from parse_leafs
 
+    Notes
+    -----
+    Handles parentheses in the regex and calls parse_wo_parentheses
+
     """
     
-    #regex object lists without any parentheses
-    #regex_lists[i] corresponds to a list which is enclosed in i parentheses
+    #parse node sequences without any parentheses
+    #regex_lists[i] corresponds to a substring  which is enclosed in 
+    #i (unprocessed) parentheses
     regex_lists = [[]]
 
     for i in range(len(regex_object_list)):
         if regex_object_list[i].meta == '(':
             regex_lists.append([])
-            open_parentheses += 1
 
         elif regex_object_list[i].meta == ')':
             if len(regex_list) <= 1:
@@ -671,18 +672,18 @@ def parse_leafs_to_tree(parse_leafs):
     root = parse_wo_parentheses(regex_lists[0])
 
 
-def parse_wo_parentheses(regex_object_list):
-    """Parses a regex object list not containing any parentheses
+def parse_wo_parentheses(parse_nodes):
+    """Parses a ParseTreeNode list not containing any parentheses
 
     Parameters
     ----------
-    regex_object_list : list of characters or ParseTreeNodes
+    parse_nodes : list of characters or ParseTreeNodes
         Should not contain any parentheses
 
     Returns
     -------
     root : ParseTreeNode
-        Root of the generated parse tree corresponding to regex_object_list
+        Root of the generated parse tree corresponding to parse_nodes
     
     """
 
@@ -697,7 +698,7 @@ def parse_wo_parentheses(regex_object_list):
     return regex_object_list[0]
 
 def process_unary(parse_nodes):
-    """Processes nodes with a metacharacter */+/?
+    """Processes nodes with a metacharacters ['*', '+', '?']
 
 """
     result = []
@@ -705,7 +706,7 @@ def process_unary(parse_nodes):
     for i in range(len(parse_nodes)):
         if parse_nodes[i].meta in ['*', '+', '?']:
             if len(result) == 0:
-                raise ValueError("regex_object_list starts with */+/?")
+                raise ValueError("Nothing to repeat in front of */+/?")
 
             #TODO More error checking
             new_node = ParseTreeNode(children=[result[-1]], 
@@ -718,59 +719,54 @@ def process_unary(parse_nodes):
     return result
 
 def process_concatenation(parse_nodes):
-
     result = []
-
-    #concatenation
     for i in range(len(parse_nodes)):
         result.append(parse_nodes[i])
         if len(result >= 2):
             if result[-2].meta != '|' and result[-1].meta != '|':
-                new_node = ParseTreeNode(children=result[-2],
+                new_node = ParseTreeNode(children=result[-2:],
                                          operation='concatenation')
                 result[-2:] = []
-                reuslt.append(new_node)
+                result.append(new_node)
 
     return result
 
 def process_union(parse_nodes):
-    i = 0
     result = []
+    i = 0
     while i < len(parse_nodes):
-        if pase_nodes[i].meta == '|':
-            #in some cases we need to create empty nodes here
-            
+        if parse_nodes[i].meta == '|':
+            #in some cases we need to create empty nodes here 
+
             #['|', ...]
             if i == 0:
                 left_child = ParseTreeNode(normal='')
-            elif result[-1].normal != None or result[-1].meta in ['.']:
+            #['a', '|']
+            elif result[-1].normal != None or result[-1].meta in ['.'] \
+                 or result[-1].operation != None:
                 left_child = parse_nodes[i-1]
-            #[..., '^', '|']
             else:
-                left_child = ParseTreeNode(normal='')
-
+                raise Exception("Unhandled metacharacter before |")
 
             #[..., '|']
             if i+1 == len(parse_nodes):
                 right_child = ParseTreeNode(normal='')
-            #[..., '|', '|']
+            #[..., '|', 'a'] or [..., '|'
             elif parse_nodes[i+1].normal != None \
-                or parse_nodes[i+1].meta in ['.']:
+                or parse_nodes[i+1].meta in ['.'] \
+                or parse_nodes[i+1].operation != None:
                 right_child = parse_nodes[i+1]
                 i += 1
             else:
-                right_child = ParseTreeNode(normal='')
+                raise Exception("Unhandled metacharacter after |")
 
             result.append(ParseTreeNode(children=[left_child, right_child],
                                          operation='|')) 
-
         else:
             result.append(parse_nodes[i])
-
         i += 1
 
     return result
-
 
 if __name__ == '__main__':
     pass
