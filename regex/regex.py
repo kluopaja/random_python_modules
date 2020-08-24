@@ -288,6 +288,17 @@ class NFA:
     Attributes
     ----------
 
+
+    Notes
+    -----
+    The NFA objects can internally be in two states: compiled and not compiled.
+    Compilation refers to generating a list of NFANode objects according
+    to the self.transitions. The generated list of NFANode objects can then
+    be used to evaluate the NFA.
+
+    The rationale behind compilation is that the list of transitions is easier
+    to handle when performing operations on NFAs (concatenation, union, ...)
+    but the list of NFANodes is easier to handle when evaluating the NFA.
     """
     def __init__(self, n_nodes, start_node, accepted_nodes, transitions):
         self.n_nodes = n_nodes
@@ -306,9 +317,7 @@ class NFA:
         characters : list(str)
 
         """
-        transitions = [(-1, 1, x) for x in characters]
-        for x in characters:
-            transitions.append((0, 1, x))
+        transitions = [(0, 1, x) for x in characters]
         return NFA(2, 0, 1, transitions)
 
     def evaluate(self, s):
@@ -319,7 +328,7 @@ class NFA:
 
         node_list = [self.start_node]
 
-        node_list = reacable_with_symbol(node_list, '')
+        node_list = reachable_with_empty(node_list)
 
         for i in range(len(s)):
             node_list = reachable_with_symbol(node_list, s[i])
@@ -331,10 +340,8 @@ class NFA:
 
         return False
             
-
-
     def reachable_with_symbol(self, node_list, symbol):
-        """Adds states to node_list which are reacable with symbol
+        """Returns states which are reachable with symbol. See Notes.
 
         Parameters
         ----------
@@ -344,13 +351,18 @@ class NFA:
 
         Returns
         -------
-        new_node_list
+        new_node_list : list (int)
+
+        Notes
+        -----
+        This function always traverses edges in the tree. So calling this
+        with symbol='' and node x will NOT return the node x unless x is
+        part of a cycle of '' edges. Compare with reachable_with_empty.
 
         """
 
         new_node_list = []
         id_active = [False for i in range(self.n_nodes)]
-
 
         for i in range(len(node_list)):
             node_id = node_list[i]
@@ -358,12 +370,12 @@ class NFA:
             for x in neighbours:
                 if not id_active[x]:
                     new_node_list.append(x)
-                    id_active[x]
+                    id_active[x] = True
 
         return new_node_list
 
     def reachable_with_empty(self, node_list):
-        """Adds states to node_list which are reacable with symbol
+        """Returns states that are reachable without consuming any symbols.
 
         Parameters
         ----------
@@ -373,7 +385,12 @@ class NFA:
 
         Returns
         -------
-        new_node_list
+        new_node_list : list(int)
+
+        Notes
+        -----
+        Also returns every node in node_list. Compare with
+        reachable_with_symbol.
         """
 
         new_node_list = reachable_with_symbol(node_list, '')
@@ -382,7 +399,6 @@ class NFA:
         #remove duplicates
         new_node_list = list(set(new_node_list))
         return new_node_list
-
 
     def copy(self):
         return NFA(self.n_nodes, self.start_node, self.accepted_nodes,
@@ -396,7 +412,6 @@ class NFA:
         self.process_transitions()
         self.compiled = True
 
-
     def process_transitions(self):
         """Adds transitions to node objects
 
@@ -409,8 +424,7 @@ class NFA:
 
         Parameters
         ----------
-            offset : non-negative int
-
+            offset : non-negative integer
 
         Notes
         -----
@@ -423,10 +437,8 @@ class NFA:
         if offset < 0:
             raise ValueError("offset cannot be negative")
 
-
         self.n_nodes += offset
         self.start_node += offset
-    
         
         for i in range(len(self.transitions)):
             self.transitios[i][0] += offset
@@ -437,7 +449,7 @@ class NFA:
         """
         self_copy = self.copy()
         other_copy = other.copy()
-        #make sure that the node ids are not overlapping
+        #make the node ids non-overlapping
         other_copy.apply_offset(self_copy.n_nodes)
 
         self_copy.n_nodes += other_copy.n_nodes
@@ -485,7 +497,7 @@ class NFA:
         return self_copy
 
     def star(self):
-        """Return a new set self*
+        """Return a new NFA self*
         
         """
         self_copy = self.copy()
@@ -508,10 +520,10 @@ class NFA:
         return self_copy
 
     def plus(self):
-        """Return a new set self+ = selfself*
+        """Return a new NFA self+ = selfself*
         """
 
-        return self.concatenation(self.star())
+        return self.concatenate(self.star())
 
     def question(self):
         """Return a new set self? = (_|self)
