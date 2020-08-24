@@ -119,5 +119,68 @@ cNN---cNN---NN1
 
         self.assertEqual(a, b)
 
+class TestRegexParsing(unittest.TestCase):
+    def test_process_union(self):
+        a = regex.process_union([regex.ParseTreeNode(normal='a')])
+        b = [regex.ParseTreeNode(normal='a')]
+        self.assertTrue(a == b)
+
+        a = regex.process_union([regex.ParseTreeNode(normal='b')])
+        b = [regex.ParseTreeNode(normal='a')]
+        self.assertTrue(a != b)
+
+        tmp = [regex.ParseTreeNode(normal='a'),
+               regex.ParseTreeNode(meta='|'),
+               regex.ParseTreeNode(normal='b')]
+        a = regex.process_union(tmp)
+        c1 = regex.ParseTreeNode(normal='a')
+        c2 = regex.ParseTreeNode(normal='b')
+        b = regex.ParseTreeNode(children=[c1, c2], operation='|')
+        b = [b]
+        self.assertEqual(a, b)
+
+        n1 = regex.ParseTreeNode(normal='a')
+        n2 = regex.ParseTreeNode(children=[n1], operation='*')
+        tmp = [n2,
+               regex.ParseTreeNode(meta='|'),
+               regex.ParseTreeNode(normal='b')]
+        a = regex.process_union(tmp)
+        n1 = regex.ParseTreeNode(normal='a')
+        n2 = regex.ParseTreeNode(children=[n1], operation='*')
+        n3 = regex.ParseTreeNode(normal='b')
+        b = regex.ParseTreeNode(children=[n2, n3], operation='|')
+        b = [b]
+        self.assertEqual(a, b)
+
+
+        tmp = [regex.ParseTreeNode(meta='|')]
+        a = regex.process_union(tmp)
+        n1 = regex.ParseTreeNode(normal='')
+        n2 = regex.ParseTreeNode(normal='')
+        b = regex.ParseTreeNode(children=[n1, n2], operation='|')
+        b = [b]
+        self.assertEqual(a, b)
+
+        tmp = [regex.ParseTreeNode(meta='.'),
+               regex.ParseTreeNode(meta='|'),
+               regex.ParseTreeNode(meta='.')]
+        a = regex.process_union(tmp)
+        n1 = regex.ParseTreeNode(meta='.')
+        n2 = regex.ParseTreeNode(meta='.')
+        b = regex.ParseTreeNode(children=[n1, n2], operation='|')
+        b = [b]
+        self.assertEqual(a, b)
+
+        tmp = [regex.ParseTreeNode(meta='|'),
+               regex.ParseTreeNode(meta='|')]
+        a = regex.process_union(tmp)
+        n1 = regex.ParseTreeNode(normal='')
+        n2 = regex.ParseTreeNode(normal='')
+        n3 = regex.ParseTreeNode(children=[n1, n2], operation='|')
+        n4 = regex.ParseTreeNode(normal='')
+        b = regex.ParseTreeNode(children=[n3, n4], operation='|')
+        b = [b]
+        self.assertEqual(a, b)
+
 if __name__ == '__main__':
     unittest.main()
