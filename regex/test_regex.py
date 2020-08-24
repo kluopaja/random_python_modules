@@ -182,5 +182,17 @@ class TestRegexParsing(unittest.TestCase):
         b = [b]
         self.assertEqual(a, b)
 
+        tmp = [regex.ParseTreeNode(meta='('),
+               regex.ParseTreeNode(meta='|')]
+
+        with self.assertRaises(Exception):
+            regex.parse_union(tmp)
+
+        tmp = [regex.ParseTreeNode(meta='|'),
+               regex.ParseTreeNode(meta=')')]
+
+        with self.assertRaises(Exception):
+            regex.parse_union(tmp)
+
 if __name__ == '__main__':
     unittest.main()
