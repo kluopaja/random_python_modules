@@ -812,10 +812,10 @@ def process_union(parse_nodes):
                  or result[-1].operation != None:
                 left_child = result.pop()
             else:
-                raise Exception("Unhandled metacharacter before |")
+                raise Exception("Unknown metacharacter before |")
 
             #[..., '|']
-            if i+1 == len(parse_nodes):
+            if i+1 == len(parse_nodes) or parse_nodes[i+1].meta == '|':
                 right_child = ParseTreeNode(normal='')
             #[..., '|', 'a'] or [..., '|'
             elif parse_nodes[i+1].normal != None \
@@ -824,7 +824,7 @@ def process_union(parse_nodes):
                 right_child = parse_nodes[i+1]
                 i += 1
             else:
-                raise Exception("Unhandled metacharacter after |")
+                raise Exception("Unknown metacharacter after |")
 
             result.append(ParseTreeNode(children=[left_child, right_child],
                                          operation='|'))
