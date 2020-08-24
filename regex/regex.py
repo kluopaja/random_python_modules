@@ -6,7 +6,7 @@ Background
 ----------
 For more deep treatment of the topic the reader should read the Sipser book.
 
-One problem in computing is how to define a sets of strings. For 
+One problem in computing is how to define a sets of strings. For
 example, how could one detect if a string s is a correctly formatted person's
 name or username.
 
@@ -16,7 +16,7 @@ doesn't. Such a program might consist of statements like:
 if s[0].isupper(): ...
 
 However, this might get somewhat complicated from both the theoretical and
-practical point of view. 
+practical point of view.
 
 Finite languages
 ----------------
@@ -51,10 +51,10 @@ The transition function d is a function from a set (Q X E) to the set Q. That
 is, the function takes two parameters X and Y where X is an automaton state
 and Y is a symbol of the alphabet S.
 
-The automaton works by starting from the start state q_0, reading the input 
+The automaton works by starting from the start state q_0, reading the input
 string T one symbol at a time and changing the automaton state based on the
-read symbol and current state as defined by the transition function d. If, 
-after processing the whole string, the automaton is in one of the accepted 
+read symbol and current state as defined by the transition function d. If,
+after processing the whole string, the automaton is in one of the accepted
 states, then the automaton accepts the string. Otherwise the automaton rejects
 the string.
 
@@ -85,22 +85,22 @@ Fortunately, also more complicated automata can be constructed from these
 simple automata using the following operations
     1. Union
         If we have two finite automata A and B recognizing languages L(A) and
-        L(B), we know how to construct a finite automaton C such that 
+        L(B), we know how to construct a finite automaton C such that
         L(C) = L(A) U L(B). That is, finite automaton C recognizes strings by
         at least A or B.
 
     2. Concatenation
-        If we have two finite automata A and B recognizing L(A) and L(B), 
+        If we have two finite automata A and B recognizing L(A) and L(B),
         we know how to construct a finite automaton C such that if w \in L(A)
-        and v \in L(B), then wv \in L(C), where wv is the concatenation of w 
+        and v \in L(B), then wv \in L(C), where wv is the concatenation of w
         and v. We mark this by L(C) = L(A)L(B)
 
     3. Kleene star
         If a finite automaton A recognizes L(A), then we know how to construct
-        a finite automaton B such that 
+        a finite automaton B such that
         L(B) = L(A)* = {_} U L(A) U L(A)L(A) U L(A)L(A)L(A) U ...
 
-        Where {_} is the language recognizing an empty string. 
+        Where {_} is the language recognizing an empty string.
 
         In other words, L(A)* is the language formed by concatenating
         the strings of language L(A) arbitrarily (also 0 or 1) times with
@@ -116,10 +116,10 @@ simple automata using the following operations
         If a finite automaton A recognizes L(A), then we know how to construct
         a finite automaton C such that L(C) = L(A)^C where ^C marks the
         complement of a set. That is, automaton C recognizes exactly those
-        strings that automaton A doesn't recognize. 
+        strings that automaton A doesn't recognize.
 
 
-It can be shown that for every finite language A, a finite automaton 
+It can be shown that for every finite language A, a finite automaton
 B, such that L(B) = A, can be constructed using only the previous operations
 1-3.
 
@@ -173,27 +173,27 @@ Definition:
 
 What if there were two sequences of operations leading to a regular
 expression R but two different languages? This would not be desirable as we
-want to define a language with a regular expression. We note that 
+want to define a language with a regular expression. We note that
 this is clearly not the case for every regular expression consisting of only
 one character. By noting that every regular expression is either one letter
 or enclosed in parentheses we can also see that if we have a more complex
 regular expression R, then there is always only one operation which could
 have formed R. Moreover, for every operation there is only a one way to
-select regular expressions R1 (and R2) to form R. Thus only one way to 
+select regular expressions R1 (and R2) to form R. Thus only one way to
 define the language L(R).
 
 #pllk mitä mieltä tuosta^?
 
 We note that if we have the instructions to construct some finite automaton
-based on the rules of the previous section, we can simply apply the same 
-sequence of operations to constuct a regular expessions describing the same 
+based on the rules of the previous section, we can simply apply the same
+sequence of operations to constuct a regular expessions describing the same
 language.
 
 The next challenge is to do the opposite i.e. to find out the way to decompose
 a regular expression to the operations used to form it. This is done by forming
 a parse tree of the expression. Every node of the parse tree corresponds to
 some regular expression. The leaves are always one of our three simple
-languages. 
+languages.
 
 Lets then consider an internal node r. Node r corresponds to a regular
 expression formed from its child(ren) by applying some of our 3 operations.
@@ -239,10 +239,10 @@ class NFANode:
 
     Attributes
     ----------
-    
+
     self.transitions : dict (str, set)
         set of nodes reachable from self with the key
-        
+
     """
     def __init__(self, transitions={}):
         self.transitions = copy.deepcopy(transitions)
@@ -339,7 +339,7 @@ class NFA:
                 return True
 
         return False
-            
+
     def reachable_with_symbol(self, node_list, symbol):
         """Returns states which are reachable with symbol. See Notes.
 
@@ -380,7 +380,7 @@ class NFA:
         Parameters
         ----------
         node_list : list (int)
-        
+
         symbol : str
 
         Returns
@@ -439,11 +439,11 @@ class NFA:
 
         self.n_nodes += offset
         self.start_node += offset
-        
+
         for i in range(len(self.transitions)):
             self.transitios[i][0] += offset
             self.transitios[i][1] += offset
-        
+
     def union(self, other):
         """Return union as a new NFA
         """
@@ -498,14 +498,14 @@ class NFA:
 
     def star(self):
         """Return a new NFA self*
-        
+
         """
         self_copy = self.copy()
 
         #add new start node and add it to accepted nodes
         self_copy.n_nodes += 1
         self_new_start = self_copy.n_nodes-1
-        
+
         self_copy.accepted_nodes.append(self_new_start)
 
         #add edges from the accepted states to the old start node
@@ -559,7 +559,7 @@ class ParseTreeNode:
 
         only in the inner nodes of the final tree
 
-    Also used during the parsing process when the regex is represented 
+    Also used during the parsing process when the regex is represented
     """
     def __init__(self, children=[], meta=None, normal=None, operation=None):
         self.children = children
@@ -568,7 +568,7 @@ class ParseTreeNode:
         self.normal = normal
 
         #TODO check that the constructed node is valid!
-        #TODO modify the @final tree@ 
+        #TODO modify the @final tree@
 
         #operation is used for internal nodes in the final tree
         self.operation = operation
@@ -609,7 +609,7 @@ def regex_to_parse_tree_nodes(regex):
     Notes
     -----
 
-    Every character (including escaped characters) is converted to a 
+    Every character (including escaped characters) is converted to a
     ParseTreeNode object.
     """
 
@@ -649,9 +649,9 @@ def parse_nodes_to_tree(parse_nodes):
     Handles parentheses in the regex and calls parse_wo_parentheses
 
     """
-    
+
     #parse node sequences without any parentheses
-    #regex_lists[i] corresponds to a substring  which is enclosed in 
+    #regex_lists[i] corresponds to a substring  which is enclosed in
     #i (unprocessed) parentheses
     regex_lists = [[]]
 
@@ -684,7 +684,7 @@ def parse_wo_parentheses(parse_nodes):
     -------
     root : ParseTreeNode
         Root of the generated parse tree corresponding to parse_nodes
-    
+
     """
 
     regex_object_list = process_unary(regex_object_list)
@@ -709,7 +709,7 @@ def process_unary(parse_nodes):
                 raise ValueError("Nothing to repeat in front of */+/?")
 
             #TODO More error checking
-            new_node = ParseTreeNode(children=[result[-1]], 
+            new_node = ParseTreeNode(children=[result[-1]],
                                      operation=parse_nodes[i].meta)
 
             result[-1] = new_node
@@ -736,7 +736,7 @@ def process_union(parse_nodes):
     i = 0
     while i < len(parse_nodes):
         if parse_nodes[i].meta == '|':
-            #in some cases we need to create empty nodes here 
+            #in some cases we need to create empty nodes here
 
             #['|', ...]
             if i == 0:
@@ -761,7 +761,7 @@ def process_union(parse_nodes):
                 raise Exception("Unhandled metacharacter after |")
 
             result.append(ParseTreeNode(children=[left_child, right_child],
-                                         operation='|')) 
+                                         operation='|'))
         else:
             result.append(parse_nodes[i])
         i += 1
