@@ -721,6 +721,7 @@ def parse_nodes_to_tree(parse_nodes):
     -------
     root : ParseTreeNode
         Root of the generated parse tree generated from parse_leafs
+        None if the parse_nodes was an empty list
 
     Notes
     -----
@@ -733,21 +734,27 @@ def parse_nodes_to_tree(parse_nodes):
     #i (unprocessed) parentheses
     regex_lists = [[]]
 
-    for i in range(len(regex_object_list)):
-        if regex_object_list[i].meta == '(':
+    for i in range(len(parse_nodes)):
+        if parse_nodes[i].meta == '(':
             regex_lists.append([])
 
-        elif regex_object_list[i].meta == ')':
-            if len(regex_list) <= 1:
-                raise ValueError("Incorrect parentheses in regex_object_list")
+        elif parse_nodes[i].meta == ')':
+            if len(regex_lists) <= 1:
+                raise ValueError("Incorrect parentheses in parse_nodes")
 
             tmp = parse_wo_parentheses(regex_lists[-1])
-            regex_lists[-2].append(tmp)
+            if tmp is not None:
+                regex_lists[-2].append(tmp)
+
             regex_lists.pop()
         else:
-            regex_lists[-1].append(regex_object_list[i])
+            regex_lists[-1].append(parse_nodes[i])
+
+    if len(regex_lists) > 1:
+        raise ValueError("Incorrect parentheses in parse_nodes")
 
     root = parse_wo_parentheses(regex_lists[0])
+    return root
 
 def parse_wo_parentheses(parse_nodes):
     """Parses a ParseTreeNode list not containing any parentheses
@@ -761,18 +768,22 @@ def parse_wo_parentheses(parse_nodes):
     -------
     root : ParseTreeNode
         Root of the generated parse tree corresponding to parse_nodes
+        None if parse_nodes was an empty list
 
     """
 
-    regex_object_list = process_unary(regex_object_list)
-    regex_object_list = process_concatenation(regex_object_list)
-    regex_object_list = process_union(regex_object_list)
+    if len(parse_nodes) == 0:
+        return None
+
+    parse_nodes = process_unary(parse_nodes)
+    parse_nodes = process_concatenation(parse_nodes)
+    parse_nodes = process_union(parse_nodes)
 
 
-    if len(regex_object_list) != 1:
-        raise Exception("regex_object_list was not processed fully")
+    if len(parse_nodes) != 1:
+        raise Exception("parse_nodes was not processed fully")
 
-    return regex_object_list[0]
+    return parse_nodes[0]
 
 def process_unary(parse_nodes):
     """Processes nodes with a metacharacters ['*', '+', '?']
