@@ -248,6 +248,12 @@ class NFANode:
     def __init__(self, transitions={}):
         self.transitions = copy.deepcopy(transitions)
 
+    def __repr__(self):
+        return repr(self.transitions)
+
+    def __eq__(self, other):
+        return self.transitions == other.transitions
+
     def add_transition(self, target, symbol):
         if symbol in self.transitions:
             self.transitions[symbol].add(target)
