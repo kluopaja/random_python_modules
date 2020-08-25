@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import unittest
 import regex
+import string
+import copy
 
 
 class TestParseTreeNode(unittest.TestCase):
@@ -454,6 +456,63 @@ class TestRegexParsing(unittest.TestCase):
         n7 = regex.ParseTreeNode(children=[n6], operation='?')
 
         b = regex.ParseTreeNode(children=[n5, n7], operation='concatenation')
+        self.assertEqual(a, b)
+
+class TestNFANode(unittest.TestCase):
+    def test___repr__(self):
+        a = regex.NFANode({'a': {1, 2, 3}})
+        b = "{'a': {1, 2, 3}}"
+        self.assertEqual(repr(a), b)
+
+    def test___eq__(self):
+        a = regex.NFANode()
+        self.assertTrue(a == a)
+
+        a = regex.NFANode({'a': {1, 1, 2, 3}})
+        b = regex.NFANode({'a': {1, 2, 3}})
+        self.assertTrue(a == b)
+
+        a = regex.NFANode({'a': {1, 2, 4}})
+        b = regex.NFANode({'a': {1, 2, 3}})
+        self.assertFalse(a == b)
+
+    def test___copy__(self):
+        a = regex.NFANode({'a': {1, 2, 3}})
+        b = copy.copy(a)
+        self.assertIsNot(a, b)
+        self.assertEqual(a, b)
+
+    def test_add_transition(self):
+        a = regex.NFANode()
+        a.add_transition(1, 'a')
+        a.add_transition(2, 'a')
+        a.add_transition(3, 'b')
+        a.add_transition(4, 'b')
+        b = regex.NFANode({'a': {1, 2}, 'b': {3, 4}})
+        self.assertEqual(a, b)
+
+        a = regex.NFANode()
+        a.add_transition(1, 'a')
+        a.add_transition(1, 'a')
+        a.add_transition(2, 'b')
+        a.add_transition(2, 'b')
+        a.add_transition(1, '')
+        b = regex.NFANode({'': {1}, 'a': {1}, 'b': {2}})
+        self.assertEqual(a, b)
+
+    def test_transitions_with_symbol(self):
+        n1 = regex.NFANode({'a': {1, 2, 3}, 'b': set()})
+
+        a = n1.transitions_with_symbol('a')
+        b = [1, 2, 3]
+        self.assertEqual(a, b)
+
+        a = n1.transitions_with_symbol('b')
+        b = []
+        self.assertEqual(a, b)
+
+        a = n1.transitions_with_symbol('')
+        b = []
         self.assertEqual(a, b)
 
 
