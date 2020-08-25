@@ -231,6 +231,8 @@ To parse these we first form a tree just based on the parentheses.
 To be continued...
 
 """
+import copy
+
 class NFANode:
     """Class for NFA nodes.
 
@@ -276,7 +278,7 @@ class NFANode:
         return result
 
 
-    def copy(self):
+    def __copy__(self):
         return NFANode(self.transitions)
 
 class NFA:
@@ -300,8 +302,8 @@ class NFA:
     def __init__(self, n_nodes, start_node, accepted_nodes, transitions):
         self.n_nodes = n_nodes
         self.start_node = start_node
-        self.accepted_nodes = accepted_nodes.copy()
-        self.transitions = transitions.copy()
+        self.accepted_nodes = copy.copy(nodes)
+        self.transitions = copy.copy(transitions)
 
         self.compiled = False
         self.nodes = None
@@ -316,6 +318,10 @@ class NFA:
         """
         transitions = [(0, 1, x) for x in characters]
         return NFA(2, 0, 1, transitions)
+
+    def __copy__(self):
+        return NFA(self.n_nodes, self.start_node, self.accepted_nodes,
+                  self.transitions)
 
     def evaluate(self, s):
         """Determine if the NFA accepts string s
@@ -397,9 +403,6 @@ class NFA:
         new_node_list = list(set(new_node_list))
         return new_node_list
 
-    def copy(self):
-        return NFA(self.n_nodes, self.start_node, self.accepted_nodes,
-                  self.transitions)
 
     def compile(self):
         """Construct a graph of NFANodes with transitions from self.transitions
@@ -444,8 +447,8 @@ class NFA:
     def union(self, other):
         """Return union as a new NFA
         """
-        self_copy = self.copy()
-        other_copy = other.copy()
+        self_copy = copy.copy(self)
+        other_copy = copy.copy(other)
         #make the node ids non-overlapping
         other_copy.apply_offset(self_copy.n_nodes)
 
@@ -474,8 +477,8 @@ class NFA:
         """Return concatenation as a new NFA
 
         """
-        self_copy = self.copy()
-        other_copy = other.copy()
+        self_copy = copy.copy(self)
+        other_copy = copy.copy(other)
 
         #make sure the node ids are not overlapping
         other_copy.apply_offset(self_copy.n_nodes)
@@ -497,7 +500,7 @@ class NFA:
         """Return a new NFA self*
 
         """
-        self_copy = self.copy()
+        self_copy = copy.copy(self)
 
         #add new start node and add it to accepted nodes
         self_copy.n_nodes += 1
