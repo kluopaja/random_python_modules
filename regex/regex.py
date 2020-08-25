@@ -281,8 +281,8 @@ class NFANode:
     def __copy__(self):
         return NFANode(self.transitions)
 
-class NFA:
-    """Implements non-deterministic finite automaton
+class NFAPlan:
+    """Implements non-evaluable representation of an NFA
 
     Attributes
     ----------
@@ -290,14 +290,8 @@ class NFA:
 
     Notes
     -----
-    The NFA objects can internally be in two states: compiled and not compiled.
-    Compilation refers to generating a list of NFANode objects according
-    to the self.transitions. The generated list of NFANode objects can then
-    be used to evaluate the NFA.
-
-    The rationale behind compilation is that the list of transitions is easier
-    to handle when performing operations on NFAs (concatenation, union, ...)
-    but the list of NFANodes is easier to handle when evaluating the NFA.
+    This class supports performing various operations on NFAs. However,
+    this class doesn't support evaluating NFA, which is done by the NFA class.
     """
     def __init__(self, n_nodes, start_node, accepted_nodes, transitions):
         self.n_nodes = n_nodes
@@ -305,8 +299,6 @@ class NFA:
         self.accepted_nodes = copy.copy(nodes)
         self.transitions = copy.copy(transitions)
 
-        self.compiled = False
-        self.nodes = None
     @classmethod
     def union_of_characters(cls, characters):
         """Construct a small NFA for a set of characters
@@ -317,11 +309,140 @@ class NFA:
 
         """
         transitions = [(0, 1, x) for x in characters]
-        return NFA(2, 0, 1, transitions)
+        return NFAPlan(2, 0, 1, transitions)
 
     def __copy__(self):
-        return NFA(self.n_nodes, self.start_node, self.accepted_nodes,
+        return NFAPlan(self.n_nodes, self.start_node, self.accepted_nodes,
                   self.transitions)
+
+    def to_NFA(self):
+        """Constructs an NFA class corresponding to self
+
+        """
+        nodes = [NFANode() for i in range(self.n_nodes)]
+        self.process_transitions()
+        for x in self.transitions:
+            nodes[x[0]].add_transition(x[1], x[2])
+
+        return NFA(nodes)
+
+
+    def apply_offset(self, offset):
+        """Shifts _all_ indexes by offset.
+
+        Parameters
+        ----------
+            offset : non-negative integer
+
+        Notes
+        -----
+        Used to make the nodes in two graphs non-overlapping.
+
+        """
+
+        self.compiled = False
+
+        if offset < 0:
+            raise ValueError("offset cannot be negative")
+
+        self.n_nodes += offset
+        self.start_node += offset
+
+        for i in range(len(self.transitions)):
+            self.transitios[i][0] += offset
+            self.transitios[i][1] += offset
+
+    def union(self, other):
+        """Return union as a new NFAPlan
+        """
+        self_copy = copy.copy(self)
+        other_copy = copy.copy(other)
+        #make the node ids non-overlapping
+        other_copy.apply_offset(self_copy.n_nodes)
+
+        self_copy.n_nodes += other_copy.n_nodes
+        self_copy.transitions.extend(other_copy.transitions)
+
+        self_old_start = self_copy.start_node
+        other_old_start = other_copy.start_node
+
+        #set new start node
+        self_copy.n_nodes += 1
+        self_copy.start_node = self_copy.n_nodes-1
+
+        #add edges from the new start node
+        new_edges = []
+        new_edges.append((self_copy.start_node, self_old_start, ''))
+        new_edges.append((self_copy.start_node, other_old_start, ''))
+        self_copy.transitions.extend(new_edges)
+
+        #update accepted nodes
+        self_copy.accepted_nodes.extend(other_copy.accepted_nodes)
+
+        return self_copy
+
+    def concatenate(self, other):
+        """Return concatenation as a new NFAPlan
+
+        """
+        self_copy = copy.copy(self)
+        other_copy = copy.copy(other)
+
+        #make sure the node ids are not overlapping
+        other_copy.apply_offset(self_copy.n_nodes)
+
+        self_copy.n_nodes += other_copy.n_nodes
+        self_copy.add_transitions(other_copy.transitions)
+
+        new_edges = []
+        for x in self_copy.accepted_nodes:
+            new_edges.append((x, other_copy.start_node, ''))
+
+
+        self_copy.transitions.extend(new_edges)
+        self_copy.accepted_nodes = other_copy.accepted_nodes.copy()
+
+        return self_copy
+
+    def star(self):
+        """Return a new NFAPlan self*
+
+        """
+        self_copy = copy.copy(self)
+
+        #add new start node and add it to accepted nodes
+        self_copy.n_nodes += 1
+        self_new_start = self_copy.n_nodes-1
+
+        self_copy.accepted_nodes.append(self_new_start)
+
+        #add edges from the accepted states to the old start node
+        new_edges = []
+        for x in self_copy.accepted_nodes:
+            new_edges.append((x, self_copy.start_node, ''))
+
+        self_copy.transitions.extend(new_edges)
+
+        self_copy.start_node = self_new_start
+
+        return self_copy
+
+    def plus(self):
+        """Return a new NFAPlan self+ = selfself*
+        """
+
+        return self.concatenate(self.star())
+
+    def question(self):
+        """Return a new NFAPlan self? = (_|self)
+        """
+        return self.union(NFAPlan.union_of_characters(['']))
+
+class NFA:
+    """Evaluable representation of an NFA
+    """
+    def __init__(self,  nodes):
+        self.nodes = copy.copy(nodes)
 
     def evaluate(self, s):
         """Determine if the NFA accepts string s
@@ -402,133 +523,6 @@ class NFA:
         #remove duplicates
         new_node_list = list(set(new_node_list))
         return new_node_list
-
-
-    def compile(self):
-        """Construct a graph of NFANodes with transitions from self.transitions
-
-        """
-        self.nodes = [NFANode() for i in range(self.n_nodes)]
-        self.process_transitions()
-        self.compiled = True
-
-    def process_transitions(self):
-        """Adds transitions to node objects
-
-        """
-        for x in self.transitions:
-            self.nodes[x[0]].add_transition(x[1], x[2])
-
-    def apply_offset(self, offset):
-        """Shifts _all_ indexes by offset.
-
-        Parameters
-        ----------
-            offset : non-negative integer
-
-        Notes
-        -----
-        Used to make the nodes in two graphs non-overlapping.
-
-        """
-
-        self.compiled = False
-
-        if offset < 0:
-            raise ValueError("offset cannot be negative")
-
-        self.n_nodes += offset
-        self.start_node += offset
-
-        for i in range(len(self.transitions)):
-            self.transitios[i][0] += offset
-            self.transitios[i][1] += offset
-
-    def union(self, other):
-        """Return union as a new NFA
-        """
-        self_copy = copy.copy(self)
-        other_copy = copy.copy(other)
-        #make the node ids non-overlapping
-        other_copy.apply_offset(self_copy.n_nodes)
-
-        self_copy.n_nodes += other_copy.n_nodes
-        self_copy.transitions.extend(other_copy.transitions)
-
-        self_old_start = self_copy.start_node
-        other_old_start = other_copy.start_node
-
-        #set new start node
-        self_copy.n_nodes += 1
-        self_copy.start_node = self_copy.n_nodes-1
-
-        #add edges from the new start node
-        new_edges = []
-        new_edges.append((self_copy.start_node, self_old_start, ''))
-        new_edges.append((self_copy.start_node, other_old_start, ''))
-        self_copy.transitions.extend(new_edges)
-
-        #update accepted nodes
-        self_copy.accepted_nodes.extend(other_copy.accepted_nodes)
-
-        return self_copy
-
-    def concatenate(self, other):
-        """Return concatenation as a new NFA
-
-        """
-        self_copy = copy.copy(self)
-        other_copy = copy.copy(other)
-
-        #make sure the node ids are not overlapping
-        other_copy.apply_offset(self_copy.n_nodes)
-
-        self_copy.n_nodes += other_copy.n_nodes
-        self_copy.add_transitions(other_copy.transitions)
-
-        new_edges = []
-        for x in self_copy.accepted_nodes:
-            new_edges.append((x, other_copy.start_node, ''))
-
-
-        self_copy.transitions.extend(new_edges)
-        self_copy.accepted_nodes = other_copy.accepted_nodes.copy()
-
-        return self_copy
-
-    def star(self):
-        """Return a new NFA self*
-
-        """
-        self_copy = copy.copy(self)
-
-        #add new start node and add it to accepted nodes
-        self_copy.n_nodes += 1
-        self_new_start = self_copy.n_nodes-1
-
-        self_copy.accepted_nodes.append(self_new_start)
-
-        #add edges from the accepted states to the old start node
-        new_edges = []
-        for x in self_copy.accepted_nodes:
-            new_edges.append((x, self_copy.start_node, ''))
-
-        self_copy.transitions.extend(new_edges)
-
-        self_copy.start_node = self_new_start
-
-        return self_copy
-
-    def plus(self):
-        """Return a new NFA self+ = selfself*
-        """
-
-        return self.concatenate(self.star())
-
-    def question(self):
-        """Return a new set self? = (_|self)
-        """
-        return self.union(NFA.union_of_characters(['']))
 
 class ParseTreeNode:
     """Used to represent the regex as a tree
