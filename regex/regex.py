@@ -622,7 +622,7 @@ class ParseTreeNode:
         prefix += 'N' if self.meta is None else self.meta[0]
         if self.normal is None:
             prefix += 'N'
-        elif self.normal is '':
+        elif self.normal == '':
             prefix += '_'
         else:
             prefix += self.normal[0]
