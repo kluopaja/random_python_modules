@@ -585,6 +585,17 @@ class ParseTreeNode:
                 return False
 
         return True
+
+    def __repr__(self):
+        self_repr = "("
+        self_repr += ", ".join([str(self.operation),
+                                str(self.meta),
+                                str(self.normal)])
+        self_repr += ")"
+        if len(self.children) == 0:
+            return self_repr
+        return self_repr + repr(self.children)
+
     def __str__(self):
         """Prints tree in a user friendly format.
 
