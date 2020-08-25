@@ -785,6 +785,9 @@ def process_unary(parse_nodes):
             if len(result) == 0:
                 raise ValueError("Nothing to repeat in front of */+/?")
 
+            if result[-1].meta == '|':
+                raise ValueError("| cannot be followed by */+/?")
+
             #TODO More error checking
             new_node = ParseTreeNode(children=[result[-1]],
                                      operation=parse_nodes[i].meta)
@@ -799,7 +802,9 @@ def process_concatenation(parse_nodes):
     result = []
     for i in range(len(parse_nodes)):
         result.append(parse_nodes[i])
-        if len(result >= 2):
+        if len(result)  >= 2:
+            #TODO meta == '.' or  normal is not None or something to
+            #replace these
             if result[-2].meta != '|' and result[-1].meta != '|':
                 new_node = ParseTreeNode(children=result[-2:],
                                          operation='concatenation')
