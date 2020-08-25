@@ -276,6 +276,186 @@ class TestRegexParsing(unittest.TestCase):
         n7 = regex.ParseTreeNode(children=[n6], operation='*')
         b = [n2, n4, n5, n7]
         self.assertEqual(a, b)
+    def test_parse_wo_parentheses(self):
+        tmp = [regex.ParseTreeNode(normal='a'),
+               regex.ParseTreeNode(meta='+'),
+               regex.ParseTreeNode(normal='b'),
+               regex.ParseTreeNode(normal='c'),
+               regex.ParseTreeNode(meta='?'),
+               regex.ParseTreeNode(meta='|'),
+               regex.ParseTreeNode(normal='d'),
+               regex.ParseTreeNode(meta='*')]
+        a = regex.parse_wo_parentheses(tmp)
+
+        n1 = regex.ParseTreeNode(normal='a')
+        n2 = regex.ParseTreeNode(children=[n1], operation='+')
+        n3 = regex.ParseTreeNode(normal='b')
+        n4 = regex.ParseTreeNode(children=[n2, n3], operation='concatenation')
+
+        n5 = regex.ParseTreeNode(normal='c')
+        n6 = regex.ParseTreeNode(children=[n5], operation='?')
+
+        n7 = regex.ParseTreeNode(children=[n4, n6], operation='concatenation')
+
+        n8 = regex.ParseTreeNode(normal='d')
+        n9 = regex.ParseTreeNode(children=[n8], operation='*')
+
+        b = regex.ParseTreeNode(children=[n7, n9], operation='|')
+        self.assertEqual(a, b)
+
+        a = regex.parse_wo_parentheses([])
+        self.assertIsNone(a)
+
+    def test_parse_nodes_to_tree(self):
+        tmp = [regex.ParseTreeNode(meta='(')]
+        with self.assertRaises(ValueError):
+            regex.parse_nodes_to_tree(tmp)
+        tmp = [regex.ParseTreeNode(meta='('),
+               regex.ParseTreeNode(meta=')'),
+               regex.ParseTreeNode(meta=')')]
+        with self.assertRaises(ValueError):
+            regex.parse_nodes_to_tree(tmp)
+
+        a = regex.parse_nodes_to_tree([])
+        self.assertIsNone(a)
+
+        tmp = [regex.ParseTreeNode(normal='a'),
+               regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(normal='b'),
+               regex.ParseTreeNode(meta=  '|'),
+               regex.ParseTreeNode(normal='c'),
+               regex.ParseTreeNode(meta=  ')'),
+               regex.ParseTreeNode(meta=  '?')]
+        a = regex.parse_nodes_to_tree(tmp)
+
+        n1 = regex.ParseTreeNode(normal='a')
+
+        n2 = regex.ParseTreeNode(normal='b')
+        n3 = regex.ParseTreeNode(normal='c')
+        n4 = regex.ParseTreeNode(children=[n2, n3], operation='|')
+        n5 = regex.ParseTreeNode(children=[n4], operation='?')
+
+        b = regex.ParseTreeNode(children=[n1, n5], operation='concatenation')
+        self.assertEqual(a, b)
+
+
+
+        tmp = [regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(meta=  ')'),
+               regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(normal='a'),
+               regex.ParseTreeNode(meta=  ')'),
+               regex.ParseTreeNode(meta=  ')'),
+               regex.ParseTreeNode(meta=  ')'),
+               regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(normal='b'),
+               regex.ParseTreeNode(meta=  '|'),
+               regex.ParseTreeNode(normal='c'),
+               regex.ParseTreeNode(meta=  ')'),
+               regex.ParseTreeNode(meta=  ')'),
+               regex.ParseTreeNode(meta=  ')'),
+               regex.ParseTreeNode(meta=  ')'),
+               regex.ParseTreeNode(meta=  '?')]
+        a = regex.parse_nodes_to_tree(tmp)
+
+        n1 = regex.ParseTreeNode(normal='a')
+
+        n2 = regex.ParseTreeNode(normal='b')
+        n3 = regex.ParseTreeNode(normal='c')
+        n4 = regex.ParseTreeNode(children=[n2, n3], operation='|')
+        n5 = regex.ParseTreeNode(children=[n4], operation='?')
+
+        b = regex.ParseTreeNode(children=[n1, n5], operation='concatenation')
+        self.assertEqual(a, b)
+
+
+        tmp = [regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(meta=  '*'),
+               regex.ParseTreeNode(meta=  ')')]
+        with self.assertRaises(ValueError):
+            regex.parse_nodes_to_tree(tmp)
+
+        tmp = [regex.ParseTreeNode(meta=  '('),
+               regex.ParseTreeNode(meta=  '|'),
+               regex.ParseTreeNode(meta=  ')')]
+        a = regex.parse_nodes_to_tree(tmp)
+
+        n1 = regex.ParseTreeNode(normal='')
+        n2 = regex.ParseTreeNode(normal='')
+        b = regex.ParseTreeNode(children=[n1, n2], operation='|')
+        self.assertEqual(a, b)
+
+    def test_regex_to_parse_tree_nodes(self):
+        a = regex.regex_to_parse_tree_nodes('')
+        self.assertEqual(a, [])
+
+        a = regex.regex_to_parse_tree_nodes('a')
+        b = [regex.ParseTreeNode(normal='a')]
+        self.assertEqual(a, b)
+
+        a = regex.regex_to_parse_tree_nodes(r'\?')
+        b = [regex.ParseTreeNode(normal='?')]
+        self.assertEqual(a, b)
+
+        a = regex.regex_to_parse_tree_nodes(r'\a')
+        b = [regex.ParseTreeNode(normal='a')]
+        self.assertEqual(a, b)
+
+        a = regex.regex_to_parse_tree_nodes(r'\|')
+        b = [regex.ParseTreeNode(normal='|')]
+        self.assertEqual(a, b)
+
+        a = regex.regex_to_parse_tree_nodes(r'*')
+        b = [regex.ParseTreeNode(meta='*')]
+        self.assertEqual(a, b)
+
+        a = regex.regex_to_parse_tree_nodes(r'*')
+        b = [regex.ParseTreeNode(meta='*')]
+        self.assertEqual(a, b)
+
+        a = regex.regex_to_parse_tree_nodes(r'a*|\?b')
+        b = [regex.ParseTreeNode(normal='a'),
+             regex.ParseTreeNode(meta=  '*'),
+             regex.ParseTreeNode(meta=  '|'),
+             regex.ParseTreeNode(normal='?'),
+             regex.ParseTreeNode(normal='b')]
+        self.assertEqual(a, b)
+
+    def test_parse_regex(self):
+        a = regex.parse_regex("")
+        self.assertIsNone(a)
+
+        a = regex.parse_regex(" ")
+        b = regex.ParseTreeNode(normal=' ')
+        self.assertEqual(a, b)
+
+        a = regex.parse_regex("abc")
+        n1 = regex.ParseTreeNode(normal='a')
+        n2 = regex.ParseTreeNode(normal='b')
+        n3 = regex.ParseTreeNode(children=[n1, n2], operation='concatenation')
+        n4 = regex.ParseTreeNode(normal='c')
+        b = regex.ParseTreeNode(children=[n3, n4], operation='concatenation')
+        self.assertEqual(a, b)
+
+        a = regex.parse_regex("()(((())))\|(b|)c?")
+        n1 = regex.ParseTreeNode(normal='|')
+        n2 = regex.ParseTreeNode(normal='b')
+        n3 = regex.ParseTreeNode(normal='')
+
+        n4 = regex.ParseTreeNode(children=[n2, n3], operation='|')
+        n5 = regex.ParseTreeNode(children=[n1, n4], operation='concatenation')
+
+        n6 = regex.ParseTreeNode(normal='c')
+        n7 = regex.ParseTreeNode(children=[n6], operation='?')
+
+        b = regex.ParseTreeNode(children=[n5, n7], operation='concatenation')
+        self.assertEqual(a, b)
+
 
 if __name__ == '__main__':
     unittest.main()
