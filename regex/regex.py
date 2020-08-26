@@ -492,6 +492,7 @@ class NFA:
         tmp += "nodes: " + str(self.nodes) + ",\n"
         tmp += "start_node: " + str(self.start_node) + ",\n"
         tmp += "accepted_nodes: " + str(self.accepted_nodes) + "]"
+        return tmp
 
     def evaluate(self, s):
         """Determine if the NFA accepts string s
@@ -500,7 +501,6 @@ class NFA:
             self.compile()
 
         node_list = [self.start_node]
-
         node_list = reachable_with_empty(node_list)
 
         for i in range(len(s)):
