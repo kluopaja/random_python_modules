@@ -480,6 +480,12 @@ class NFA:
         self.start_node = start_node
         self.accepted_nodes = copy.copy(accepted_nodes)
 
+    @classmethod
+    def from_regex(self, regex):
+        root = parse_regex(regex)
+        plan = root.to_NFAPlan()
+        return plan.to_NFA()
+
     def __eq__(self, other):
         if not isinstance(other, NFA):
             return NotImplemented
@@ -698,6 +704,28 @@ class ParseTreeNode:
                     out.append('|')
 
         return out
+
+    def to_NFAPlan(self):
+        if self.normal is not None:
+            return NFAPlan.union_of_characters([self.normal])
+        if self.meta == '.':
+            return NFAPlan.union_of_characters([string.printable])
+        if self.operation in ['|', 'concatenation']:
+            plan1 = self.children[0].to_NFAPlan()
+            plan2 = self.children[1].to_NFAPlan()
+            if self.operation == '|':
+                return plan1.union(plan2)
+            else:
+                return plan1.concatenate(plan2)
+        if self.operation in ['*', '+', '?']:
+            plan = self.children[0].to_NFAPlan()
+            if self.operation == '*':
+                return plan.star()
+            if self.operation == '+':
+                return plan.plus()
+            if self.operation == '?':
+                return plan.question()
+
 
 def parse_regex(regex):
     """Generates parse tree from regex
