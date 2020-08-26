@@ -515,6 +515,219 @@ class TestNFANode(unittest.TestCase):
         b = []
         self.assertEqual(a, b)
 
+class TestNFAPlan(unittest.TestCase):
+    def test___init__(self):
+        a = regex.NFAPlan(2, 0, [1], [(0, 1, 'a'), (0, 1, 'b')])
+        self.assertEqual(a.n_nodes, 2)
+        self.assertEqual(a.start_node, 0)
+        self.assertEqual(a.accepted_nodes, [1])
+        self.assertEqual(a.transitions, [(0, 1, 'a'), (0, 1, 'b')])
+
+    def test_union_of_characters(self):
+        a = regex.NFAPlan.union_of_characters([])
+        b = regex.NFAPlan(2, 0, [1], [])
+        self.assertEqual(a, b)
+
+        a = regex.NFAPlan.union_of_characters(['a', 'b', ''])
+        b = regex.NFAPlan(2, 0, [1], [(0, 1, 'a'), (0, 1, 'b'), (0, 1, '')])
+        self.assertEqual(a, b)
+
+    def test___repr__(self):
+        a = regex.NFAPlan(4, 0, [3], [(0, 1, 'a'), (1, 2, 'b')])
+        b = \
+"""[n_nodes: 4,
+start_node: 0,
+accepted_nodes: [3],
+transitions: [(0, 1, 'a'), (1, 2, 'b')]]"""
+
+        self.assertEqual(repr(a), b)
+
+    def test___eq__(self):
+        a = regex.NFAPlan(4, 0, [3], [(0, 1, 'a'), (1, 2, 'b')])
+        self.assertEqual(a, a)
+
+        a = regex.NFAPlan(1, 0, [3], [(0, 1, 'a'), (1, 2, 'b')])
+        b = regex.NFAPlan(4, 0, [3], [(0, 1, 'a'), (1, 2, 'b')])
+        self.assertNotEqual(a, b)
+
+        a = regex.NFAPlan(4, 2, [1], [(0, 1, 'a'), (1, 2, 'b')])
+        b = regex.NFAPlan(4, 0, [3], [(0, 1, 'a'), (1, 2, 'b')])
+        self.assertNotEqual(a, b)
+
+        a = regex.NFAPlan(4, 2, [3], [(0, 1, 'b'), (1, 2, 'b')])
+        b = regex.NFAPlan(4, 0, [3], [(0, 1, 'a'), (1, 2, 'b')])
+        self.assertNotEqual(a, b)
+
+        a = regex.NFAPlan(4, 2, [3], [(0, 1, 'b'), (1, 2, 'b')])
+        b = "asdf"
+        self.assertNotEqual(a, b)
+
+        a = regex.NFAPlan(8, 2, [1, 5, 3, 2, 7], [(0, 1, 'b'), (1, 2, 'b')])
+        b = regex.NFAPlan(8, 2, [1, 2, 3, 5, 7], [(1, 2, 'b'), (0, 1, 'b')])
+        self.assertEqual(a, b)
+
+    def test___copy__(self):
+        a = regex.NFAPlan(4, 0, [3], [(0, 1, 'a'), (1, 2, 'b')])
+        b = copy.copy(a)
+        self.assertIsNot(a, b)
+        self.assertEqual(a, b)
+
+    def test_to_NFA(self):
+        a = regex.NFAPlan(4, 0, [3], [(0, 1, 'a'), (1, 2, 'b')])
+        a = a.to_NFA()
+
+        n0 = regex.NFANode({'a': {1}})
+        n1 = regex.NFANode({'b': {2}})
+        b = regex.NFA([n0, n1, regex.NFANode(), regex.NFANode()], 0, [3])
+        self.assertEqual(a, b)
+
+        a = regex.NFAPlan(4, 0, [], [])
+        a = a.to_NFA()
+
+        b = regex.NFA([regex.NFANode(), regex.NFANode(),
+                       regex.NFANode(), regex.NFANode()], 0, [])
+        self.assertEqual(a, b)
+
+    def test_apply_offset(self):
+        a = regex.NFAPlan(2, 0, [2], [(0, 1, 'a'), (1, 0, 'b')])
+        with self.assertRaises(ValueError):
+            a.apply_offset(-123)
+
+        a = regex.NFAPlan(2, 0, [2], [(0, 1, 'a'), (1, 0, 'b')])
+        a.apply_offset(0)
+
+        b = regex.NFAPlan(2, 0, [2], [(0, 1, 'a'), (1, 0, 'b')])
+        self.assertEqual(a, b)
+
+        a = regex.NFAPlan(2, 0, [2], [(0, 1, 'a'), (1, 0, 'b')])
+        a.apply_offset(0)
+        b = regex.NFAPlan(2, 0, [2], [(0, 1, 'a'), (1, 0, 'b')])
+        self.assertEqual(a, b)
+
+        a = regex.NFAPlan(2, 0, [2], [(0, 1, 'a'), (1, 0, 'b')])
+        a.apply_offset(3)
+        b = regex.NFAPlan(5, 3, [5], [(3, 4, 'a'), (4, 3, 'b')])
+        self.assertEqual(a, b)
+
+        a = regex.NFAPlan(10, 4, [1, 2, 3, 4], [(0, 9, 'a'), (9, 9, 'b')])
+        o = 1000000
+        a.apply_offset(o)
+        b = regex.NFAPlan(10+o, 4+o,
+                          [1+o, 2+o, 3+o, 4+o],
+                          [(0+o, 9+o, 'a'), (9+o, 9+o, 'b')])
+        self.assertEqual(a, b)
+    def test_union(self):
+        #n1:      --> 0 -a> 1 -a>(2)
+        #n2:      --> 0 -b> 1 -b>(2)
+        #
+        #b: --> 6 -e> 0 -a> 1 -a>(2)
+        #         \
+        #          e> 3 -b> 4 -b>(5)
+
+        n1 = regex.NFAPlan(3, 0, [2], [(0, 1, 'a'), (1, 2, 'a')])
+        n2 = regex.NFAPlan(3, 0, [2], [(0, 1, 'b'), (1, 2, 'b')])
+        a = n1.union(n2)
+
+        b = regex.NFAPlan(7, 6, [2, 5],
+                          [(0, 1, 'a'), (1, 2, 'a'), (3, 4, 'b'), (4, 5, 'b'),
+                           (6, 0, ''), (6, 3, '')])
+
+        self.assertEqual(a, b)
+
+        #n1:      --> 0 -a> 1 -a>(2)
+        #n2:      --> 0
+        #
+        #b: --> 4 -e> 0 -a> 1 -a>(2)
+        #         \
+        #          e> 3
+
+        n1 = regex.NFAPlan(3, 0, [2], [(0, 1, 'a'), (1, 2, 'a')])
+        n2 = regex.NFAPlan(1, 0, [], [])
+        a = n1.union(n2)
+
+        b = regex.NFAPlan(5, 4, [2],
+                          [(4, 0, ''), (0, 1, 'a'), (1, 2, 'a'),
+                           (4, 3, '')])
+
+        self.assertEqual(a, b)
+
+    def test_concatenate(self):
+        #n1: --> 0 -a> 1 -a>(2)
+        #n2: --> 0 -b> 1 -b>(2)
+        #
+        #b   --> 0 -a> 1 -a> 2 -e> 3 -b> 4 -b> (5)
+
+        n1 = regex.NFAPlan(3, 0, [2], [(0, 1, 'a'), (1, 2, 'a')])
+        n2 = regex.NFAPlan(3, 0, [2], [(0, 1, 'b'), (1, 2, 'b')])
+        a = n1.concatenate(n2)
+
+        b = regex.NFAPlan(6, 0, [5],
+                          [(0, 1, 'a'), (1, 2, 'a'), (2, 3, ''),
+                           (3, 4, 'b'), (4, 5, 'b')])
+        self.assertEqual(a, b)
+
+        #n1: --> 0 -a> 1 -a> 2
+        #n2: --> 0 -b> 1 -b>(2)
+        #
+        #b   --> 0 -a> 1 -a> 2     3 -b> 4 -b> (5)
+
+        n1 = regex.NFAPlan(3, 0, [], [(0, 1, 'a'), (1, 2, 'a')])
+        n2 = regex.NFAPlan(3, 0, [2], [(0, 1, 'b'), (1, 2, 'b')])
+        a = n1.concatenate(n2)
+
+        b = regex.NFAPlan(6, 0, [5],
+                          [(0, 1, 'a'), (1, 2, 'a'),
+                           (3, 4, 'b'), (4, 5, 'b')])
+        self.assertEqual(a, b)
+
+    def test_star(self):
+        #n1:     --> 0 -a> 1 -a>(2)
+        #
+        #b -->(3)-e> 0 -a> 1 -a>(2)
+        #            ^         /
+        #             \------e-
+
+        n1 = regex.NFAPlan(3, 0, [2], [(0, 1, 'a'), (1, 2, 'a')])
+        a = n1.star()
+
+        b = regex.NFAPlan(4, 3, [2, 3],
+                          [(3, 0, ''), (0, 1, 'a'), (1, 2, 'a'), (2, 0, '')])
+        self.assertEqual(a, b)
+
+        #n1:     --> 0
+        #
+        #b -->(1)-e> 0
+
+        n1 = regex.NFAPlan(1, 0, [], [])
+        a = n1.star()
+
+        b = regex.NFAPlan(2, 1, [1], [(1, 0, '')])
+        self.assertEqual(a, b)
+    def test_plus(self):
+        #n1:     --> 0 -a> 1 -a>(2)
+        #
+        #b --> 0 -a> 1 -a> 2 -e> (6)-e> 3 -a> 4 -a>(5)
+        #                               ^         /
+        #                                \------e-
+        n1 = regex.NFAPlan(3, 0, [2], [(0, 1, 'a'), (1, 2, 'a')])
+        a = n1.plus()
+
+        b = regex.NFAPlan(7, 0, [6, 5],
+                          [(0, 1, 'a'), (1, 2, 'a'), (2, 6, ''), (6, 3, ''),
+                           (3, 4, 'a'), (4, 5, 'a'), (5, 3, '')])
+        self.assertEqual(a, b)
+    def test_question(self):
+        #n1:   --> 0 -a> 1 -a>(2)
+        #
+        #b:  5 -e> 0 -a> 1 -a>(2)
+        #      \
+        #       e> 3 -e>(4)
+        n1 = regex.NFAPlan(3, 0, [2], [(0, 1, 'a'), (1, 2, 'a')])
+        a = n1.question()
+
+        b = regex.NFAPlan(6, 5, [2, 4],
+                          [(5, 0, ''), (0, 1, 'a'), (1, 2, 'a'),
+                           (5, 3, ''), (3, 4, '')])
 
 if __name__ == '__main__':
     unittest.main()
