@@ -252,6 +252,9 @@ class NFANode:
         return repr(self.transitions)
 
     def __eq__(self, other):
+        if not isinstance(other, NFANode):
+            return NotImplemented
+
         return self.transitions == other.transitions
 
     def add_transition(self, target, symbol):
@@ -447,8 +450,30 @@ class NFAPlan:
 class NFA:
     """Evaluable representation of an NFA
     """
-    def __init__(self,  nodes):
-        self.nodes = copy.copy(nodes)
+    def __init__(self, nodes, start_node, accepted_nodes):
+        """Constructor
+
+        Parameters
+        ----------
+        nodes: list of NFANodes
+
+        """
+        self.nodes = copy.deepcopy(nodes)
+        self.start_node = start_node
+        self.accepted_nodes = copy.copy(accepted_nodes)
+
+    def __eq__(self, other):
+        if not isinstance(other, NFA):
+            return NotImplemented
+        return self.nodes == other.nodes and \
+               self.start_node == other.start_node and \
+               set(self.accepted_nodes) == set(other.accepted_nodes)
+
+    def __repr__(self):
+        tmp = "["
+        tmp += "nodes: " + str(self.nodes) + ",\n"
+        tmp += "start_node: " + str(self.start_node) + ",\n"
+        tmp += "accepted_nodes: " + str(self.accepted_nodes) + "]"
 
     def evaluate(self, s):
         """Determine if the NFA accepts string s
