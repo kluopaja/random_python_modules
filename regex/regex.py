@@ -497,15 +497,12 @@ class NFA:
     def evaluate(self, s):
         """Determine if the NFA accepts string s
         """
-        if not compiled:
-            self.compile()
-
         node_list = [self.start_node]
-        node_list = reachable_with_empty(node_list)
+        node_list = self.reachable_with_empty(node_list)
 
         for i in range(len(s)):
-            node_list = reachable_with_symbol(node_list, s[i])
-            node_list = reachable_with_empty(node_list)
+            node_list = self.reachable_with_symbol(node_list, s[i])
+            node_list = self.reachable_with_empty(node_list)
 
         for x in node_list:
             if x in self.accepted_nodes:
@@ -514,7 +511,7 @@ class NFA:
         return False
 
     def reachable_with_symbol(self, node_list, symbol):
-        """Returns states which are reachable with symbol. See Notes.
+        """Returns states which are reachable with symbol.
 
         Parameters
         ----------
@@ -526,24 +523,18 @@ class NFA:
         -------
         new_node_list : list (int)
 
-        Notes
-        -----
-        This function always traverses edges in the tree. So calling this
-        with symbol='' and node x will NOT return the node x unless x is
-        part of a cycle of '' edges. Compare with reachable_with_empty.
-
         """
 
         new_node_list = []
-        id_active = [False for i in range(self.n_nodes)]
+        used = [False for i in range(len(self.nodes))]
 
         for i in range(len(node_list)):
             node_id = node_list[i]
             neighbours = self.nodes[node_id].transitions_with_symbol(symbol)
             for x in neighbours:
-                if not id_active[x]:
+                if not used[x]:
                     new_node_list.append(x)
-                    id_active[x] = True
+                    used[x] = True
 
         return new_node_list
 
@@ -566,11 +557,21 @@ class NFA:
         reachable_with_symbol.
         """
 
-        new_node_list = reachable_with_symbol(node_list, '')
-        #it is not necessary to use the empty string edges
-        new_node_list.extend(node_list)
-        #remove duplicates
-        new_node_list = list(set(new_node_list))
+        new_node_list = copy.copy(node_list)
+        used = [False for i in range(len(self.nodes))]
+        for x in new_node_list:
+            used[x] = True
+
+        i = 0
+        while i < len(new_node_list):
+            node_id = new_node_list[i]
+            neighbours = self.nodes[node_id].transitions_with_symbol('')
+            for x in neighbours:
+                if not used[x]:
+                    new_node_list.append(x)
+                    used[x] = True
+            i += 1
+
         return new_node_list
 
 class ParseTreeNode:
