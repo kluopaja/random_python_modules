@@ -305,7 +305,7 @@ class NFAPlan:
     def __init__(self, n_nodes, start_node, accepted_nodes, transitions):
         self.n_nodes = n_nodes
         self.start_node = start_node
-        self.accepted_nodes = copy.copy(nodes)
+        self.accepted_nodes = copy.copy(accepted_nodes)
         self.transitions = copy.copy(transitions)
 
     @classmethod
@@ -318,7 +318,25 @@ class NFAPlan:
 
         """
         transitions = [(0, 1, x) for x in characters]
-        return NFAPlan(2, 0, 1, transitions)
+        return NFAPlan(2, 0, [1], transitions)
+
+    def __repr__(self):
+        tmp = '['
+        tmp += 'n_nodes: ' + str(self.n_nodes) + ',\n'
+        tmp += 'start_node: ' + str(self.start_node) + ',\n'
+        tmp += 'accepted_nodes: ' + str(self.accepted_nodes) + ',\n'
+        tmp += 'transitions: ' + str(self.transitions)
+        tmp += ']'
+        return tmp
+
+    def __eq__(self, other):
+        if not isinstance(other, NFAPlan):
+            return NotImplemented
+
+        return (self.n_nodes == other.n_nodes and
+                self.start_node == other.start_node and
+                set(self.accepted_nodes) == set(other.accepted_nodes) and
+                set(self.transitions) == set(other.transitions))
 
     def __copy__(self):
         return NFAPlan(self.n_nodes, self.start_node, self.accepted_nodes,
@@ -329,11 +347,10 @@ class NFAPlan:
 
         """
         nodes = [NFANode() for i in range(self.n_nodes)]
-        self.process_transitions()
         for x in self.transitions:
             nodes[x[0]].add_transition(x[1], x[2])
 
-        return NFA(nodes)
+        return NFA(nodes, self.start_node, self.accepted_nodes)
 
 
     def apply_offset(self, offset):
@@ -349,17 +366,18 @@ class NFAPlan:
 
         """
 
-        self.compiled = False
-
         if offset < 0:
             raise ValueError("offset cannot be negative")
 
         self.n_nodes += offset
         self.start_node += offset
 
+        for i in range(len(self.accepted_nodes)):
+            self.accepted_nodes[i] += offset
+
         for i in range(len(self.transitions)):
-            self.transitios[i][0] += offset
-            self.transitios[i][1] += offset
+            tmp = self.transitions[i]
+            self.transitions[i] = (tmp[0]+offset, tmp[1]+offset, tmp[2])
 
     def union(self, other):
         """Return union as a new NFAPlan
@@ -369,7 +387,7 @@ class NFAPlan:
         #make the node ids non-overlapping
         other_copy.apply_offset(self_copy.n_nodes)
 
-        self_copy.n_nodes += other_copy.n_nodes
+        self_copy.n_nodes = other_copy.n_nodes
         self_copy.transitions.extend(other_copy.transitions)
 
         self_old_start = self_copy.start_node
@@ -400,8 +418,8 @@ class NFAPlan:
         #make sure the node ids are not overlapping
         other_copy.apply_offset(self_copy.n_nodes)
 
-        self_copy.n_nodes += other_copy.n_nodes
-        self_copy.add_transitions(other_copy.transitions)
+        self_copy.n_nodes = other_copy.n_nodes
+        self_copy.transitions.extend(other_copy.transitions)
 
         new_edges = []
         for x in self_copy.accepted_nodes:
@@ -409,7 +427,7 @@ class NFAPlan:
 
 
         self_copy.transitions.extend(new_edges)
-        self_copy.accepted_nodes = other_copy.accepted_nodes.copy()
+        self_copy.accepted_nodes = other_copy.accepted_nodes
 
         return self_copy
 
