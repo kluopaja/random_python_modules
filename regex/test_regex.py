@@ -729,5 +729,155 @@ transitions: [(0, 1, 'a'), (1, 2, 'b')]]"""
                           [(5, 0, ''), (0, 1, 'a'), (1, 2, 'a'),
                            (5, 3, ''), (3, 4, '')])
 
+
+class TestNFA(unittest.TestCase):
+
+    def test___init__(self):
+        n0 = regex.NFANode({'a': {0}})
+        n1 = regex.NFANode({'b': {0}})
+        nodes = [n0, n1]
+        accepted_nodes = [0]
+        a = regex.NFA(nodes, 0, accepted_nodes)
+        self.assertEqual(a.nodes, nodes)
+        self.assertEqual(a.start_node, 0)
+        self.assertEqual(a.accepted_nodes, accepted_nodes)
+        #test copying
+        self.assertIsNot(a.nodes, nodes)
+        self.assertIsNot(a.nodes[0], n0)
+        self.assertIsNot(a.accepted_nodes, accepted_nodes)
+
+    def test___eq__(self):
+        n0 = regex.NFANode({'a': {0}})
+        n1 = regex.NFANode({'b': {0}})
+        nodes = [n0, n1]
+        accepted_nodes = [0]
+        a = regex.NFA(nodes, 0, accepted_nodes)
+
+        self.assertEqual(a, a)
+        self.assertNotEqual(a, " ")
+
+        n0 = regex.NFANode({'a': {0}})
+        n1 = regex.NFANode({'b': {0}})
+        n2 = regex.NFANode({'a': {1}})
+        a = regex.NFA([n0, n1], 0, [0])
+        b = regex.NFA([n2, n1], 0, [0])
+        self.assertNotEqual(a, b)
+
+        n0 = regex.NFANode({'a': {0}})
+        n1 = regex.NFANode({'b': {0}})
+        a = regex.NFA([n0, n1], 0, [0])
+        b = regex.NFA([n0, n1], 1, [0])
+        self.assertNotEqual(a, b)
+
+        n0 = regex.NFANode({'a': {0}})
+        n1 = regex.NFANode({'b': {0}})
+        a = regex.NFA([n0, n1], 0, [0])
+        b = regex.NFA([n0, n1], 0, [1])
+        self.assertNotEqual(a, b)
+
+    def test___repr__(self):
+        n0 = regex.NFANode({'a': {0}})
+        n1 = regex.NFANode({'b': {0}})
+        a = str(regex.NFA([n0, n1], 0, [0]))
+        b = \
+"""[nodes: [{'a': {0}}, {'b': {0}}],
+start_node: 0,
+accepted_nodes: [0]]"""
+        self.assertEqual(a, b)
+
+    def test_reachable_with_symbol(self):
+        #n1: --> 0 -a> 1 -a> 2
+        n1 = regex.NFAPlan(3, 0, [], [(0, 1, 'a'), (1, 2, 'a')]).to_NFA()
+        a = n1.reachable_with_symbol([0], 'a')
+        self.assertEqual(a, [1])
+
+        #n1: --> 0 -a> 1 -a> 2
+        n1 = regex.NFAPlan(3, 0, [], [(0, 1, 'a'), (1, 2, 'a')]).to_NFA()
+        a = n1.reachable_with_symbol([0], 'b')
+        self.assertEqual(a, [])
+
+        #n1: --> 0 -a> 1 -a> 2
+        n1 = regex.NFAPlan(3, 0, [], [(0, 1, 'a'), (1, 2, 'a')]).to_NFA()
+        a = n1.reachable_with_symbol([0, 1], 'a')
+        self.assertEqual(a, [1, 2])
+
+    def test_reachable_with_empty(self):
+        #n1: --> 0 -a> 1 -a> 2
+        n1 = regex.NFAPlan(3, 0, [], [(0, 1, 'a'), (1, 2, 'a')]).to_NFA()
+        a = n1.reachable_with_empty([0])
+        self.assertEqual(a, [0])
+
+        #b -->(3)-e> 0 -a> 1 -a>(2)
+        #            ^         /
+        #             \------e-
+        n1 = regex.NFAPlan(4, 3, [2, 3],
+                          [(3, 0, ''), (0, 1, 'a'), (1, 2, 'a'), (2, 0, '')])
+        n1 = n1.to_NFA()
+        a = n1.reachable_with_empty([3])
+        self.assertEqual(a, [3, 0])
+
+    def test_evaluate(self):
+        #n1: --> 0 -a> 1 -a>(2)
+        n1 = regex.NFAPlan(3, 0, [2], [(0, 1, 'a'), (1, 2, 'a')]).to_NFA()
+        a = n1.evaluate("aa")
+        self.assertTrue(a)
+
+        #n1: --> 0 -a> 1 -a>(2)
+        n1 = regex.NFAPlan(3, 0, [2], [(0, 1, 'a'), (1, 2, 'a')]).to_NFA()
+        a = n1.evaluate("aa ")
+        self.assertFalse(a)
+
+        #n1: --> 0 -a> 1 -a>(2)
+        n1 = regex.NFAPlan(3, 0, [2], [(0, 1, 'a'), (1, 2, 'a')]).to_NFA()
+        a = n1.evaluate("a")
+        self.assertFalse(a)
+
+        #n1 -->(3)-e> 0 -a> 1 -a>(2)
+        #            ^         /
+        #             \------e-
+        n1 = regex.NFAPlan(4, 3, [2, 3],
+                          [(3, 0, ''), (0, 1, 'a'), (1, 2, 'a'), (2, 0, '')])
+        n1 = n1.to_NFA()
+        for i in range(20):
+            if i % 2 == 0:
+                a = n1.evaluate("")
+                self.assertTrue(a)
+            else:
+                a = n1.evaluate("a")
+                self.assertFalse(a)
+
+        #b --> 0 -e> 1 -e> 2 -e>(3)
+        n1 = regex.NFAPlan(4, 0, [3], [(0, 1, ''), (1, 2, ''), (2, 3, '')])
+        n1 = n1.to_NFA()
+        a = n1.evaluate('')
+        self.assertTrue(a)
+
+        a = n1.evaluate('a')
+        self.assertFalse(a)
+
+
+    def search_separating_string(nfa1, nfa2, times=10000, max_n=100):
+        random.seed(1337)
+        """Tries to find s s.t. nfa1.evalueate(s) != nfa2.evaluate(s)
+
+        Parameters
+        ----------
+            nfa1, nfa2 : NFA objects to be compared
+
+        Returns
+        -------
+            s : string, None
+                s s.t. nfa1.evaluate(s) != nfa2.evaluate(s)
+                None if no suitable s was found
+        """
+        for i in range(times):
+            alhabet = string.printable
+            length = random.randint(0, max_n)
+            s = random.choices(alphabet, k=length)
+            if nfa1.evaluate(s) != nfa2.evaluate(s):
+                return s
+        return None
+
+
 if __name__ == '__main__':
     unittest.main()
